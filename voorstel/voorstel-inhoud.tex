@@ -12,40 +12,71 @@
 % uitgewerkt (met medesturent VOORNAAM NAAM als mede-auteur).
 % 
 
-\section{Inleiding}%
+\section{Introduction}%
 \label{sec:inleiding}
 
-Waarover zal je bachelorproef gaan? Introduceer het thema en zorg dat volgende zaken zeker duidelijk aanwezig zijn:
+\subsection{Context and problem}%
+IBM Message Queu plays a critical role in the messaging infrastructure of Rabobank, where reliability, performance, cost efficiency and scalability are essential. One of the ways MQ achieves this is through the use of buffer pools, which are in-memory areas where data and pages are cached to minimize expensive physical I/O operations to and from disk. Well-sized buffer pools are therefore an important factor for performance, whereas incorrectly sized buffer pools can result in inefficient memory utilisation or thrashing behaviour, where excessive page replacements cause performance issues. Factors such as transaction growth, application changes and infrastructure expansion can change buffer pool usage. Therefore, MQ administrators require an ongoing, reliable and accurate view of the operational health of these buffer pools and preferably maintain a balance between underutilisation and memory contention.
 
+SMF generates a large amount of data, of which SMF 115 and 116 records are related to IBM MQ. These are extracted and formatted using the MP1B utility. The generated MP1B reports are the primary data source for MQ performance data. However, these reports mainly provide stand alone metrics without any business context. Similar metric values can belang to different operational states. This causes IBM MQ administrators to rely on manual interpretation, personal experience and knowledge of the local MQ environment. This takes time, causes errors and is difficult to standardise, which result in slow detection of unhealthy buffer pool behaviour or inconsistent interpretations between experts.
+
+\subsection{Main and sub research questions}%
+The central research question of my bachelor thesis is: How can operational states of IBM MQ buffer pools be inferred from SMF data, and which actionable insights does this approach provide that are lacking in traditional MP1B reports?
+
+\subsubsection{Problem domain}%
 \begin{itemize}
-  \item kaderen thema
-  \item de doelgroep
-  \item de probleemstelling en (centrale) onderzoeksvraag
-  \item de onderzoeksdoelstelling
+    \item which parameters have the biggest impact on buffer pool efficiency / health ?
+    \item How often does hit-ratio fall below 85\% each day ?
+    \item What is the correlation between buffer pool size and hit ratio?
 \end{itemize}
 
-Denk er aan: een typische bachelorproef is \textit{toegepast onderzoek}, wat betekent dat je start vanuit een concrete probleemsituatie in bedrijfscontext, een \textbf{casus}. Het is belangrijk om je onderwerp goed af te bakenen: je gaat voor die \textit{ene specifieke probleemsituatie} op zoek naar een goede oplossing, op basis van de huidige kennis in het vakgebied.
+\subsubsection{Solution domain}%
+\begin{itemize}
+    \item Which minimal set of buffer pool-related SMF-metrics are needed to define operational states?
+    \item Which operational buffer pool states can be formally defined based on the selected SMF-derived metrics?
+    \item To what extent can a rule-based classification model automatically infer buffer pool states per measurement interval?
+    \item What can we learn from daily state distribution analysis (\% per day) that is lacking in standard MP1B reports?
+\end{itemize}
 
-De doelgroep moet ook concreet en duidelijk zijn, dus geen algemene of vaag gedefinieerde groepen zoals \emph{bedrijven}, \emph{developers}, \emph{Vlamingen}, enz. Je richt je in elk geval op it-professionals, een bachelorproef is geen populariserende tekst. Eén specifiek bedrijf (die te maken hebben met een concrete probleemsituatie) is dus beter dan \emph{bedrijven} in het algemeen.
+\subsubsection{Scope}%
+The scope of this bachelor thesis is to research only buffer pool health. This data is stored within sub SMF type 216 within the SMF 115 record.
 
-Formuleer duidelijk de onderzoeksvraag! De begeleiders lezen nog steeds te veel voorstellen waarin we geen onderzoeksvraag terugvinden.
+\subsection{Objective, success case and target group}%
+The bachelor thesis will be considered a success if the prototype is able to process real MP1B SMF 115 and 116 data, consistently classify buffer pool operational states in a reliable manner, generate daily reports that are useful to IBM MQ administrators, reduce the amount of manual analysis needed, provide clear early-warning indicators for thrashing buffer pools and show which unused or underutilized buffer pools  can be reduced safely. 
 
-Schrijf ook iets over de doelstelling. Wat zie je als het concrete eindresultaat van je onderzoek, naast de uitgeschreven scriptie? Is het een proof-of-concept, een rapport met aanbevelingen, \ldots Met welk eindresultaat kan je je bachelorproef als een succes beschouwen?
+ The objective is to develop a rule-based analysis framework that categorises MP1B-formatted SMF buffer pool data into operational health states and produce a daily report of the health state distribution of buffer pools using SAS. The prototype normalises data, reduce dependency on individual expertise, and provides IBM MQ administrators with a consistent tool to support capacity planning, early detection of thrashing behaviour and more reliable decisions.
 
 %---------- Stand van zaken ---------------------------------------------------
 
-\section{Literatuurstudie}%
+\section{Literature study}%
 \label{sec:literatuurstudie}
 
-Hier beschrijf je de \emph{state-of-the-art} rondom je gekozen onderzoeksdomein, d.w.z.\ een inleidende, doorlopende tekst over het onderzoeksdomein van je bachelorproef. Je steunt daarbij heel sterk op de professionele \emph{vakliteratuur}, en niet zozeer op populariserende teksten voor een breed publiek. Wat is de huidige stand van zaken in dit domein, en wat zijn nog eventuele open vragen (die misschien de aanleiding waren tot je onderzoeksvraag!)?
+\subsection{Current solutions and alternatives}%
+Most vendors do not have a ready built solution. The biggest hurdle is developing a product that works for each company with minimal tuning.
+Most products on the market today are capable of collecting and doing statistics, but interpreting is the difficult aspect. 
 
-Je mag de titel van deze sectie ook aanpassen (literatuurstudie, stand van zaken, enz.). Zijn er al gelijkaardige onderzoeken gevoerd? Wat concluderen ze? Wat is het verschil met jouw onderzoek?
 
-Verwijs bij elke introductie van een term of bewering over het domein naar de vakliteratuur, bijvoorbeeld~\autocite{Hykes2013}! Denk zeker goed na welke werken je refereert en waarom.
 
-Draag zorg voor correcte literatuurverwijzingen! Een bronvermelding hoort thuis \emph{binnen} de zin waar je je op die bron baseert, dus niet er buiten! Maak meteen een verwijzing als je gebruik maakt van een bron. Doe dit dus \emph{niet} aan het einde van een lange paragraaf. Baseer nooit teveel aansluitende tekst op eenzelfde bron.
+\subsection{IBM Message Queu (MQ)}%
+IBM MQ is a core middleware component in z/OS environments and is used to handle a large volume, variety and velocity of messages securely. Many different industries depend on MQ. To achieve this performance MQ relies on buffer pools to cache frequently accessed pages of queues in memory to minimise expensive physical I/O operations \autocite{IBMMQ2026}. 
 
-Als je informatie over bronnen verzamelt in JabRef, zorg er dan voor dat alle nodige info aanwezig is om de bron terug te vinden (zoals uitvoerig besproken in de lessen Research Methods).
+\subsection{What are Buffer Pools and their usage}%
+A buffer pool in IBM MQ is a shared memory structure that stores pages of queue files to improve performance and reduce disk access latency. Poorly configured or overloaded buffer pools can lead to more physical I/O, CPU overhead and in may cause operational instability such as buffer pool thrashing \autocite{Paice2020}.
+
+\subsection{What are Storage Management Facility (SMF) records}%
+Everything that runs on z/OS generates SMF records and each SMF record has their own type. IBM MQ also generates SMF data and the types that corresponds with MQ are 115 and 116. These record themselves contain subtypes that hold statistics about queue manager activity, buffer pool usage, I/O behaviour, latch contention and page residency characteristics \autocite{IBM2025}. That is why these records are widely used by system programmers and MQ administrators to analyse performance characteristics however that also makes it very complex to analyse \autocite{Vasquez2024}.
+
+\subsection{What is MP1B}%
+MP1B is an utility script that formats raw SMF 115 and 116 records into readable reports that can be used for further processing \autocite{IBMMP1B2025}.
+
+\subsection{Performance issues caused by Buffer Pools}%
+The worst state a buffer pool can be in is when the working set of pages required by MQ workloads exceeds the size of the allocated buffer pool, leading to continuous eviction and re-reading of page \autocite{IBM2025}. The original concept of thrashing and the working set model was introduced by Peter J. Denning. Peter defined thrashing as excessive paging activity leading to performance collapse \autocite{Denning1968}.
+
+\subsection{Why stand alone metric does not give you the full picture}%
+Many industry experts mention the importance of context around data. similar patterns can represent different operational states depending on workload characteristics, access locality and queue design. For example, a high read rate may indicate healthy burst traffic or severe thrashing, making it difficult and slow to interpret. Raw SMF statistics and accounting data are provided in a low-level format with no business context, requiring additional processing and interpretation to derive meaningful performance insights \parencite{Klimaszewski2021}.
+
+
+
 
 % Voor literatuurverwijzingen zijn er twee belangrijke commando's:
 % \autocite{KEY} => (Auteur, jaartal) Gebruik dit als de naam van de auteur
@@ -54,31 +85,143 @@ Als je informatie over bronnen verzamelt in JabRef, zorg er dan voor dat alle no
 %   functie heeft in de zin (bv. ``Uit onderzoek door Doll & Hill (1954) bleek
 %   ...'')
 
-Je mag deze sectie nog verder onderverdelen in subsecties als dit de structuur van de tekst kan verduidelijken.
 
 %---------- Methodologie ------------------------------------------------------
-\section{Methodologie}%
+\section{Methodology}%
 \label{sec:methodologie}
 
-Hier beschrijf je hoe je van plan bent het onderzoek te voeren. Welke onderzoekstechniek ga je toepassen om elk van je onderzoeksvragen te beantwoorden? Gebruik je hiervoor literatuurstudie, interviews met belanghebbenden (bv.~voor requirements-analyse), experimenten, simulaties, vergelijkende studie, risico-analyse, PoC, \ldots?
 
-Valt je onderwerp onder één van de typische soorten bachelorproeven die besproken zijn in de lessen Research Methods (bv.\ vergelijkende studie of risico-analyse)? Zorg er dan ook voor dat we duidelijk de verschillende stappen terug vinden die we verwachten in dit soort onderzoek!
+\subsection{Tools en technology}
+\begin{table}[h]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Component} & \textbf{Tool} \\
+        \hline
+        SMF extraction      & IBM MP1B \\
+        Analysis  & SAS 9.4 \\
+        Datasets       & z/OS datasets \\
+        Validation          & Manual MP1B analysis \\
+        Visualisation       & SAS PROC SGPLOT \\
+        \hline
+    \end{tabular}
+    \caption{Overview tools and technologies}
+\end{table}
 
-Vermijd onderzoekstechnieken die geen objectieve, meetbare resultaten kunnen opleveren. Enquêtes, bijvoorbeeld, zijn voor een bachelorproef informatica meestal \textbf{niet geschikt}. De antwoorden zijn eerder meningen dan feiten en in de praktijk blijkt het ook bijzonder moeilijk om voldoende respondenten te vinden. Studenten die een enquête willen voeren, hebben meestal ook geen goede definitie van de populatie, waardoor ook niet kan aangetoond worden dat eventuele resultaten representatief zijn.
+\subsection{Planning and deliverables}
+\begin{table}[h]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Phase} & \textbf{Duration} \\
+        \hline
+        Literature study        & 2 weeks  \\
+        Datacollection  & 2 weeks  \\
+        State-model design       & 2 weeks \\
+        SAS-implementation          & 4 weeks \\
+        Evaluation       & 2 weeks \\
+        Reporting       & 2 weeks \\
+        \hline
+    \end{tabular}
+    \caption{Overview duration every phase}
+\end{table}
+\begin{table}[h]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{Phase} & \textbf{Deliverable} \\
+        \hline
+        Literature study        &  buffer pool metrics\\
+                &   requirement analysis  \\
+        Datacollection  & SMF 115/116 datasets  \\
+        State-model design       & Operational buffer pool  \\
+               & state framework \\
+        SAS-implementation          & Working Proof-of-Concept \\
+        Evaluation       & Evaluation report \\
+        Reporting       & Bachelor thesis document \\
+        \hline
+    \end{tabular}
+    \caption{Overview duration every phase}
+\end{table}
 
-Uit dit onderdeel moet duidelijk naar voor komen dat je bachelorproef ook technisch voldoen\-de diepgang zal bevatten. Het zou niet kloppen als een bachelorproef informatica ook door bv.\ een student marketing zou kunnen uitgevoerd worden.
 
-Je beschrijft ook al welke tools (hardware, software, diensten, \ldots) je denkt hiervoor te gebruiken of te ontwikkelen.
 
-Probeer ook een tijdschatting te maken. Hoe lang zal je met elke fase van je onderzoek bezig zijn en wat zijn de concrete \emph{deliverables} in elke fase?
+\subsection{Phases}
+
+The bachelor thesis is of the analytical design and Proof-of-Concept (PoC) type.
+The Thesis has been divided into several phases to make the planning and tracking as orderly as possible. The overarching goal is to design, implement and evaluate a consistent and reliable classificationmethod and framework that can process IBM MQ SMF data into several predefined operational states and visualize it in a clear and usefull manner to IBM MQ administrators.
+
+\subsubsection{Phase 1: literature study}
+Phase one consists of all tasks related to preparation, requirement analysis, literature study, stakeholder analysis. This is also the category where the problem and details get filled and redefining or cutting back on the problem area to safeguard the quality of the thesis. 
+
+Problem domain: which parameters have the biggest impact on buffer pool efficiency / health ?
+Literature study
+
+\subsubsection{Phase 2: data collection}
+Phase two is where the problem is almost defined as well as it can be. The purpose of this category is to gather all the necessary data and learn how the tools that gather and manipulate the data work. These consist of SMF data pipelines, MP1B, SAS environment ,rudimentary data manipulation and visualization. 
+
+\subsubsection{Phase 3: state-model design}
+Phase three is exclusively for the analysis and design of the buffer pool health model. 
+Here you will find all information regarding the defined operational states. How key parameters are connected to form rules that map buffer pools to an operational state. 
+
+Solution domain: Which minimal set of buffer pool-related SMF-metrics are needed to define
+operational states?
+Literature study + technical document analysis of IBM Redbooks
+
+Solution domain: Which operational buffer pool states can be formally defined based on the selected SMF-derived metrics?
+literature study, interview with stakeholders
+
+\subsubsection{Phase 4: SAS-implementation}
+Phase four  MP1B to Implementation and Classification in SAS. This category is to build a working prototype using scripts to clean, extract, categorize using predefined thresholds and rules into their operational states. This category has several MVP's
+
+\begin{table}[h]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{MVP} & \textbf{description} \\
+        \hline
+        MVP1 & The framework is implemented and    \\
+             & the data is correctly calculated .          \\
+             & without graphs.  \\
+        MVP2 & The framework is implemented and    \\
+             & the data is correctly calculated .            \\
+             & withs graphs \\
+        MVP3 & The framework is implemented, the    \\
+             & data is correctly calculated with               \\
+             & graphs and automated              \\
+        \hline
+    \end{tabular}
+    \caption{Overview of different MVP}
+\end{table}
+
+
+Problem domain: How often does hit-ratio fall below 85\% each day ?
+Experiment
+
+Problem domain: What is the correlation between buffer pool size and hit ratio?
+Simulation
+
+Solution domain: To what extent can a rule-based classification model automatically infer buffer pool states per measurement interval?
+Proof-of-Concept
+
+Solution domain: What can we learn from daily state distribution analysis (\% per day) that is lacking in standard MP1B reports?
+Simulations
+
 
 %---------- Verwachte resultaten ----------------------------------------------
-\section{Verwacht resultaat, conclusie}%
+\section{Expected results, conclusion}%
 \label{sec:verwachte_resultaten}
 
-Hier beschrijf je welke resultaten je verwacht. Als je metingen en simulaties uitvoert, kan je hier al mock-ups maken van de grafieken samen met de verwachte conclusies. Benoem zeker al je assen en de onderdelen van de grafiek die je gaat gebruiken. Dit zorgt ervoor dat je concreet weet welk soort data je moet verzamelen en hoe je die moet meten.
+The developed SAS model automatically assigns one operational state per measurement interval and per buffer pool based on SMF 115 and 116 performance data.
 
-Wat heeft de doelgroep van je onderzoek aan het resultaat? Op welke manier zorgt jouw bachelorproef voor een meerwaarde?
+The SAS visualisation component provides an overview showing the daily distribution of operational states from multiple buffer pools. Users can click to see a detailed view of a specific buffer pool during a day. This detailed view is represented as a line graph with time on the X-axis and the operational state on the Y-axis.
 
-Hier beschrijf je wat je verwacht uit je onderzoek, met de motivatie waarom. Het is \textbf{niet} erg indien uit je onderzoek andere resultaten en conclusies vloeien dan dat je hier beschrijft: het is dan juist interessant om te onderzoeken waarom jouw hypothesen niet overeenkomen met de resultaten.
+IBM MQ administrators receive normalised, fast, and reproducible reports that enable more proactive performance management and earlier detection of buffer pool performance issues.
+
+\subsection{Conclusion}
+Automatically inferring IBM MQ buffer pool operational states from SMF 115 and 116 data is possible and is more efficient and consistent than traditional manual MP1B interpretation. The biggest hurdle is tuning the different parameters for each operational state to fit a specific mainframe environment. This results in faster response times to performance issues.
 
