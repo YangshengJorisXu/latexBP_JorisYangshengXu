@@ -1,0 +1,65 @@
+\chapter{Phase 4 -- Proof-of-Concept Implementation}
+\label{ch:phase4}
+
+\section{Introduction}
+
+This phase describes the implementation the PoC. The goal of the PoC is to show that IBM MQ SMF data can be collected, processed, and transformed into useful insights about buffer pool health.
+
+The implementation is based on an Extract-Transform-Load (ETL) approach. Raw SMF data is periodically dumped then parsed using MP1B to a hosted UNIX directory on the the mainframe, processed and enriched in Python, and finally visualized in Grafana.
+
+\section{ETL Pipeline}
+
+The PoC follows an ETL pipeline consisting of three main steps: extraction, transformation and finally presentation.
+
+\section{Extraction}
+
+The extraction step is responsible for collecting IBM MQ performance data from the mainframe.
+
+A scheduled job is executed every 15 minutes using Workload Management (WLM). This job uses JCL to run the \texttt{MQSMF} utility, which is part of the MP1B support package.
+
+The utility processes SMF records and generates CSV output files for different MQ components, such as queue managers, queues, and buffer pools. For this PoC, only the buffer pool data is used.
+
+The result of this step is a set of CSV files containing raw performance metrics.
+
+\section{Transformation}
+
+The transformation step is implemented in Python and is the core of the PoC. It consists of three main parts.
+
+\subsection{Data collection}
+
+All CSV files from the past 30 days are collected and combined into a single dataset. This allows analysis over a longer time period.
+
+\subsection{Data processing}
+
+The dataset is then processed and enriched. This includes:
+\begin{itemize}
+    \item calculating derived metrics such as ratios and utilization;
+    \item adding contextual metadata (e.g. environment, queue manager);
+    \item assigning an operational state to each record based on the classification framework;
+    \item generating an interpretation layer that explains the observed behavior;
+    \item generating an advice layer with possible actions.
+\end{itemize}
+
+This step transforms raw data into meaningful information.
+
+\subsection{API layer}
+
+The final dataset is exposed through a simple REST API. This allows external tools to access the processed data without directly interacting with the transformation scripts.
+
+\section{Loading and Presentation}
+
+Grafana is used to visualize the processed data. It retrieves the dataset via the REST API and displays it in dashboards.
+
+The dashboards provide:
+\begin{itemize}
+    \item trend analysis over time;
+    \item comparison between different periods;
+    \item distribution of operational states;
+    \item insights into recent and historical buffer pool behavior.
+\end{itemize}
+
+This makes the results easier to interpret and use in practice.
+
+\section{Conclusion}
+
+This phase demonstrates how the classification framework can be implemented in a working system. By combining mainframe data extraction, Python processing, and Grafana visualization, the PoC shows that buffer pool performance data can be transformed into clear and usable insights.

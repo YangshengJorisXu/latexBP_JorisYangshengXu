@@ -3,7 +3,7 @@
 % Meer info op https://github.com/HoGentTIN/latex-hogent-report
 %===============================================================================
 
-\documentclass[dutch,dit,thesis]{hogentreport}
+\documentclass[english,dit,thesis]{hogentreport}
 
 % TODO:
 % - If necessary, replace the option `dit`' with your own department!
@@ -12,17 +12,21 @@
 %   explicit approval!), remove the option "dutch," or replace with "english".
 
 \usepackage{lipsum} % For blind text, can be removed after adding actual content
-
+\usepackage{parskip}
+ 
 %% Pictures to include in the text can be put in the graphics/ folder
+\usepackage{graphicx}
 \graphicspath{{../graphics/}}
 
 %% For source code highlighting, requires pygments to be installed
 %% Compile with the -shell-escape flag!
-%% \usepackage[chapter]{minted}
+\usepackage[chapter]{minted}
 %% If you compile with the make_thesis.{bat,sh} script, use the following
 %% import instead:
-\usepackage[chapter,outputdir=../output]{minted}
-\usemintedstyle{solarized-light}
+%% \usepackage[chapter,outputdir=../output]{minted}
+%% \usemintedstyle{solarized-light} 
+
+\setlength{\headheight}{27pt}
 
 %% Formatting for minted environments.
 \setminted{%
@@ -49,16 +53,16 @@
 
 %%---------- Document metadata -------------------------------------------------
 % TODO: Replace this with your own information
-\author{Ernst Aarden}
-\supervisor{Dhr. F. Van Houte}
-\cosupervisor{Mevr. S. Beeckman}
-\title[Optionele ondertitel]%
-    {Titel van de bachelorproef}
+\author{Joris Yangsheng Xu}
+\supervisor{Dhr. Leendert Blondeel}
+\cosupervisor{Dhr. Dragos Gheorghe}
+\title%
+    {How to categorize and interpret MQSMF buffer pool csv output from the IBM MQ MP1B supportpac that leads to more consistent, reliable, and actionable insights compared to traditional MP1B reports}
 \academicyear{\advance\year by -1 \the\year--\advance\year by 1 \the\year}
 \examperiod{1}
 \degreesought{\IfLanguageName{dutch}{Professionele bachelor in de toegepaste informatica}{Bachelor of applied computer science}}
 \partialthesis{false} %% To display 'in partial fulfilment'
-%\institution{Internshipcompany BVBA.}
+%\institution{Rabobank}
 
 %% Add global exceptions to the hyphenation here
 \hyphenation{back-slash}
@@ -129,10 +133,17 @@
 % Aarzel niet om een meer beschrijvende titel aan deze hoofdstukken te geven of
 % om bijvoorbeeld de inleiding en/of stand van zaken over meerdere hoofdstukken
 % te verspreiden!
-
+    
 \input{inleiding}
 \input{standvanzaken}
 \input{methodologie}
+\input{phase1}
+\input{phase2}
+\input{phase3}
+\input{phase4}
+\input{phase5}
+\input{phase6}
+
 
 % Voeg hier je eigen hoofdstukken toe die de ``corpus'' van je bachelorproef
 % vormen. De structuur en titels hangen af van je eigen onderzoek. Je kan bv.
@@ -152,7 +163,7 @@
 
 Het onderwerp van deze bachelorproef is gebaseerd op een onderzoeksvoorstel dat vooraf werd beoordeeld door de promotor. Dat voorstel is opgenomen in deze bijlage.
 
-%% TODO: 
+% TODO: 
 %\section*{Samenvatting}
 
 % Kopieer en plak hier de samenvatting (abstract) van je onderzoeksvoorstel.

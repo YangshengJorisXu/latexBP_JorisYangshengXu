@@ -21,8 +21,7 @@
 \academicyear{2025-2026} % TODO: pas het academiejaar aan
 
 % TODO: Werktitel
-\title{How do you infer operational states from IBM MQ Buffer Pools through SMF data and
-    what insights are there that traditional reports from MP1B lack ?}
+\title{How to categorize and interpret MQSMF buffer pool csv output from the IBM MQ MP1B supportpac that leads to more consistent, reliable, and actionable insights compared to traditional MP1B reports}
 
 % TODO: Studentnaam en emailadres invullen
 \author{Joris Yangsheng Xu}
@@ -49,7 +48,7 @@
 %   zelf
 %
 \specialisation{Mainframe Expert}
-\keywords{SMF, Buffer Pool health, MP1b}
+\keywords{SMF, Buffer Pool health, MP1B}
 
 \usepackage{tabularx}
 \usepackage{booktabs}
@@ -57,7 +56,7 @@
 \begin{document}
 
 \begin{abstract}  
-  This bachelor thesis investigates how the health of IBM Message Queu (MQ) buffer pools can be assessed by inferring operational states from SMF 115 and 116 data gathered with MP1B and analysed using SAS, with the aim of reducing the time required to consistently obtain an accurate and reliable view of buffer pool health. Buffer pool SMF records and MP1B reports lack business context, causing MQ administrators and system programmers to rely on manual interpretation and personal experience to evaluate buffer pool health and behaviour. Similar metrics can translate to fundamentally different operational states or trends causing difficulty interpreting the data. The central research question is: How can operational states of IBM MQ buffer pools be inferred from SMF data and which insights does this approach provide that are lacking in traditional MP1B reports? The research objective is to create a SAS-based analysis framework that categorises relevant MP1B-formatted SMF buffer pool data into operational states and visualizes trends over time. The proposed methodology is: extraction of SMF 115/116 data using MP1B, developing SAS programs to aggregate and analyse the data, and defining rule-based health indicators. The expected outcome is a working prototype that generates a daily buffer pool health report, providing MQ administrators with a standardised tool that reduces reliance on manual interpretation and supports improved capacity planning.
+  This bachelor thesis investigates how the health of IBM Message Queue (MQ) buffer pools can be assessed by inferring operational states from SMF 115 and 116 data gathered with MP1B and analysed using SAS, with the aim of reducing the time required to consistently obtain an accurate and reliable view of buffer pool health. Buffer pool SMF records and MP1B reports lack business context, causing MQ administrators and system programmers to rely on manual interpretation and personal experience to evaluate buffer pool health and behaviour. Similar metrics can translate to fundamentally different operational states or trends causing difficulty interpreting the data. The central research question is: How can operational states of IBM MQ buffer pools be inferred from SMF data and which insights does this approach provide that are lacking in traditional MP1B reports? The research objective is to create a SAS-based analysis framework that categorises relevant MP1B-formatted SMF buffer pool data into operational states and visualizes trends over time. The proposed methodology is: extraction of SMF 115/116 data using MP1B, developing SAS programs to aggregate and analyse the data, and defining rule-based health indicators. The expected outcome is a working prototype that generates a daily buffer pool health report, providing MQ administrators with a standardised tool that reduces reliance on manual interpretation and supports improved capacity planning.
 \end{abstract}
 
 \tableofcontents

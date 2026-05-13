@@ -7,45 +7,204 @@
 
 % Pas na deze inleidende paragraaf komt de eerste sectiehoofding.
 
-Dit hoofdstuk bevat je literatuurstudie. De inhoud gaat verder op de inleiding, maar zal het onderwerp van de bachelorproef *diepgaand* uitspitten. De bedoeling is dat de lezer na lezing van dit hoofdstuk helemaal op de hoogte is van de huidige stand van zaken (state-of-the-art) in het onderzoeksdomein. Iemand die niet vertrouwd is met het onderwerp, weet nu voldoende om de rest van het verhaal te kunnen volgen, zonder dat die er nog andere informatie moet over opzoeken \autocite{Pollefliet2011}.
+In the previous chapter, the context, scope, problem statement, research objectives and general structure of the thesis were introduced. It is clear that there are benefits for a structured and automated approach to assess the operational health of IBM MQ buffer pools using SMF 115 subtype 215 data. While this research originates from real challenges within enterprise z/OS environments, a thorough theoretical foundation is useful to give context to the problem and solution and in the case that future incidents change requirements. 
 
-Je verwijst bij elke bewering die je doet, vakterm die je introduceert, enz.\ naar je bronnen. In \LaTeX{} kan dat met het commando \texttt{$\backslash${textcite\{\}}} of \texttt{$\backslash${autocite\{\}}}. Als argument van het commando geef je de ``sleutel'' van een ``record'' in een bibliografische databank in het Bib\LaTeX{}-formaat (een tekstbestand). Als je expliciet naar de auteur verwijst in de zin (narratieve referentie), gebruik je \texttt{$\backslash${}textcite\{\}}. Soms is de auteursnaam niet expliciet een onderdeel van de zin, dan gebruik je \texttt{$\backslash${}autocite\{\}} (referentie tussen haakjes). Dit gebruik je bv.~bij een citaat, of om in het bijschrift van een overgenomen afbeelding, broncode, tabel, enz. te verwijzen naar de bron. In de volgende paragraaf een voorbeeld van elk.
+This chapter first introduces the architectural context of IBM Z and z/OS, followed by an overview of IBM MQ and its buffer pool mechanisms. Subsequently, relevant theoretical foundations are discussed, including memory management, caching behavior, thrashing and paging phenomena, and principles of performance engineering. The chapter then examines operational state modeling approaches, as well as the characteristics and limitations of SMF data collection. Finally, existing monitoring practices are reviewed in order to identify limitations and gaps that justify the proposed research approach.
 
-\textcite{Knuth1998} schreef een van de standaardwerken over sorteer- en zoekalgoritmen. Experten zijn het erover eens dat cloud computing een interessante opportuniteit vormen, zowel voor gebruikers als voor dienstverleners op vlak van informatietechnologie~\autocite{Creeger2009}.
+By synthesizing architectural, theoretical, and operational perspectives, this chapter creates the conceptual framework necessary for the design and implementation of a rule based buffer pool state classification model. The next chapter will cover how we use this theory to create a structured step by step plan with goals, context and deliverables for each step. 
 
-Let er ook op: het \texttt{cite}-commando voor de punt, dus binnen de zin. Je verwijst meteen naar een bron in de eerste zin die erop gebaseerd is, dus niet pas op het einde van een paragraaf.
+\section{IBM Z and z/OS}%
+\label{sec:architecture-context}
 
-\begin{figure}
-  \centering
-  \includegraphics[width=0.8\textwidth]{grail.jpg}
-  \caption[Voorbeeld figuur.]{\label{fig:grail}Voorbeeld van invoegen van een figuur. Zorg altijd voor een uitgebreid bijschrift dat de figuur volledig beschrijft zonder in de tekst te moeten gaan zoeken. Vergeet ook je bronvermelding niet!}
-\end{figure}
+This section will give you the context on what platform both hardware and software IBM MQ runs on.
 
-\begin{listing}
-  \begin{minted}{python}
-    import pandas as pd
-    import seaborn as sns
+Mainframe systems consist of 2 primary parts: the specific IBM server hardware and z/OS that result in a high performance computers that can handle large amounts of transactions each day with the highest levels of security, reliability, availability and serviceability. With 96\% of enterprises that deploy the z16 reporting 99.9999999\% of uptime due to inherent hardware and software according to the ITIC 2023 Reliability Survey \autocite{itic2023}.  
 
-    penguins = sns.load_dataset('penguins')
-    sns.relplot(data=penguins, x="flipper_length_mm", y="bill_length_mm", hue="species")
-  \end{minted}
-  \caption[Voorbeeld codefragment]{Voorbeeld van het invoegen van een codefragment.}
-\end{listing}
+These characteristics make them the first choice for enterprises who have a need for large mixed workloads.
+This is evident due to the fact that mainframes dominate in the Banking, Finance, Insurance, Retail and Airline industries.  
+\autocite{ibm2025_mainframe}
 
-\lipsum[7-20]
+mainframes are still evolving and are integrating new technologies like cloud and AI to adhere to mainframe standards. 
+To conclude, mainframes are often an expensive, but sound investment to guarantee quality and fast processing. 
 
-\begin{table}
-  \centering
-  \begin{tabular}{lcr}
-    \toprule
-    \textbf{Kolom 1} & \textbf{Kolom 2} & \textbf{Kolom 3} \\
-    $\alpha$         & $\beta$          & $\gamma$         \\
-    \midrule
-    A                & 10.230           & a                \\
-    B                & 45.678           & b                \\
-    C                & 99.987           & c                \\
-    \bottomrule
-  \end{tabular}
-  \caption[Voorbeeld tabel]{\label{tab:example}Voorbeeld van een tabel.}
-\end{table}
+\subsection{IBM Z Hardware}%
+\label{subsec:z-hardware}
 
+IBM Z systems represent a class of enterprise computing platforms designed to support large scale transactional processing that is reliable, high availability and secure (RAS). 
+
+IBM Z systems provide centralized resource management and workload isolation within a single physical system. Processor, memory, and I/O resources are allocated and controlled at the hardware level, enabling predictable performance and control of workloads.
+
+For higher availability and scalability, multiple IBM Z systems can be interconnected in a Parallel Sysplex configuration. In such a setup, systems cooperate through shared data structures and coupling facilities, allowing workloads to be distributed and providing resilience against individual system failures.
+
+IBM Z architecture is especially known for inbuilt logical partitioning which can be seen as a form of virtualization. Through this mechanism, a single physical system can be divided into multiple logical partitions (LPARs). Each LPAR is capable of running its own operating system instance. This allows different workloads to coexist on the same hardware while maintaining controlled isolation and predictable resource allocation.
+
+The architecture provides benefits such as:
+\begin{itemize}
+    \item Workload isolation, preventing resource contention between critical and non critical systems
+    \item Predictable performance through dedicated or capped resource allocation
+    \item Reducing complexity
+    \item Improved fault isolation and resiliency of systems
+\end{itemize}
+
+These characteristics and design choices lead to benefits that are especially suited for enterprises that require high compliance, availability, security, auditability and serviceability. 
+
+\subsection{z/OS Operating System}%
+\label{subsec:zos-architecture}
+
+The primary operating system for IBM Z mainframes is z/OS. It is optimized for large and mixed enterprise workloads by providing advanced workload management, virtual memory management and I/O subsystems that are designed to handle substantial volumes of concurrent transactions efficiently and reliably. 
+
+z/OS operates on top of a lower virtualization layer provided by the Processor Resource/System Manager (PR/SM) hypervisor, which enables the division of a physical system into multiple logical partitions (LPARs). Within each LPAR, z/OS implements a virtual memory model in which physical memory is extended through virtual storage techniques, and each workload executes within its own protected address space. This architecture enables strong isolation, controlled resource sharing and concurrent processing. \autocite{ibm2025_zos}
+
+\section{IBM MQ Architecture on z/OS}%
+\label{sec:mq-architecture}
+
+This section introduces IBM MQ and its core functionality. Subsequently, the major architectural components of IBM MQ on z/OS are discussed.
+
+IBM MQ is a Message Oriented Middleware (MOM) product developed by IBM. It enables reliable and asynchronous communication between distributed applications by decoupling senders and receivers through message queues. IBM MQ provides assured delivery, transactional integrity, security mechanisms, and auditing capabilities, making it a robust messaging backbone for enterprise environments \autocite{ibm2026_mq}.
+
+\subsection{Queue Manager Architecture}%
+\label{subsec:qmgr-architecture}
+
+A queue manager is the central control component of IBM MQ responsible for the reliable storage, routing, and delivery of messages between applications. It manages the lifecycle of messages.
+
+The queue manager controls local and shared queues, enforces message persistence and transactional integrity, coordinates logging and recovery, and ensures once and only once delivery semantics. It manages buffer pools and page sets for in memory caching and persistent storage of message data, thereby balancing performance and durability requirements.
+
+In addition, the queue manager manages communication channels for message transmission between distributed systems, security policies and authorization, and maintains operational state information. It also provides interfaces for monitoring, administration, and workload management. Through these mechanisms, the queue manager ensures message integrity, availability, and consistency across both standalone and clustered environments . \autocite{ibm2025_mq_qmgr}.
+
+\section{Memory Management and Caching Theory}%
+\label{sec:caching-theory}
+
+This section serves to give foundational theory on caching, page set traffic minimization and their strategies. The studies in question are very old, nonetheless still relevant as they laid the foundation of virtual memory management. 
+
+
+Early studies of large scale enterprise mainframes demonstrated a substantial latency gap between cache and main memory
+\autocite{smith1982_cache_memories}. 
+The latency gap between processors, memory and long term storage in modern mainframes is even larger due to the advancements in technology and algorithms.
+
+\subsection{Principles of Locality}%
+\label{subsec:locality}
+
+
+The principle of locality of reference is a foundational concept in memory management and caching. It was discovered in an effort to solve early virtual memory thrashing problems due to inefficient page replacement algorithms and multiple user systems. 
+
+The concept revealed that program execution is not random, but instead has structured access patterns. Temporal locality refers to the tendency of programs to repeatedly access a relatively small subset of memory pages over short time intervals. Spatial locality describes the tendency of programs to access memory locations that are close to one another within a short period of time. 
+
+These principles provided the theoretical basis for the development of more effective page replacement algorithms. \autocite{denning2005_locality_principle}
+
+
+\subsection{Working Set Theory}%
+\label{subsec:working-set}
+
+The working set model describes how much memory a program actively uses during execution. It was introduced to explain bottleneck problems observed in early virtual memory systems. The working set is used to describe the set of recently used pages.
+
+If the working set becomes close to or exceeds the available memory, the system becomes bottlenecked due to increased paging activity. This can significantly degrade performance and may lead to thrashing. \autocite{denning1968_working_set}
+
+In IBM MQ, this concept can be applied to buffer pools. The working set corresponds to the set of messages that are being actively used. When buffer pool size is insufficient page replacement increases and more page set I/O occurs. Working set theory explains why insufficient buffer pool capacity leads to higher I/O rates and reduced performance.
+
+\subsection{Thrashing/paging and Cache Efficiency}%
+\label{subsec:thrashing-cache-efficiency}
+    
+Cache effectiveness depends on architectural parameters such as cache size, block size, associativity, and replacement policy, as well as workload characteristics. \autocite{smith1982_cache_memories}
+
+Cache efficiency is commonly evaluated using hit ratio and page replacement frequency. Hit ratio represent the \% of page requests are in the current cache. Page replacement activity shows how often pages get evicted for new pages or clear space.
+
+In the context of IBM MQ buffer pools, the primary configurable parameter influencing performance is effective memory capacity which corresponds to cache size.
+
+\section{Buffer Pools in IBM MQ}%
+\label{sec:buffer-pools}
+
+
+Buffer pools temporarily store message data and related object information in memory before that data is written to persistent storage, such as page sets on Direct Access Storage Devices (DASD). In IBM MQ for z/OS, a queue manager can have up to 99 buffer pools, each identified by a unique buffer pool identifier. Buffer pools 0 through 4 are commonly used for storing queue manager control structures and frequently accessed messages, while higher numbered buffer pools are typically assigned to application workloads.  \autocite{ibm2025_mq_bp}
+
+Buffer pools form the in memory caching layer of IBM MQ for z/OS and play a central role in balancing performance with durability. They mediate between high speed execution and comparatively slower disk I/O by retaining frequently used pages in virtual storage, thereby reducing the need for repeated access to page sets.
+
+\subsection{Operational Failure Modes}%
+\label{subsec:failure-modes}
+
+Buffer pools are simple in configuration, but their impact on performance is significant. Most operational problems occur when the buffer pool is too small for the workload it needs to support.
+
+When the active page set grows close to or exceeds the available buffer pool capacity, pages must be replaced more frequently. This leads to increased I/O activity to and from disk. In practice, this is visible as a declining hit ratio and rising I/O counts.
+
+Under moderate pressure, the system may continue operating without obvious failures, but efficiency decreases. If the condition persists, replacement activity can dominate normal processing. Pages are repeatedly evicted and reloaded within short time intervals. This behavior resembles thrashing and results in the system becoming bottle necked by paging. 
+
+Another common issue is imbalance between buffer pools. If multiple queues are assigned to the same page set and buffer pool, one buffer pool may become saturated while others remain lightly used. This can lead to localized performance degradation even when total available memory appears sufficient. A simple solution is to assign different buffer pools for different applications. 
+
+These failure modes can be observed through metrics such as hit ratio, page replacement rate, and page set I/O activity derived from SMF 115 subtype 215 data. Recognizing these patterns is essential for assessing buffer pool health.  
+
+The thresholds to look out for are: 75\% up until 100\% with intervals of 5\% with variations depending on the company. 
+
+\autocite{ibm2020_mq_smf_intro}
+\autocite{Paice2020}
+
+\section{Page Sets}%
+\label{subsec:page-sets}
+
+In IBM MQ for z/OS, message data is stored persistently in page sets. Page sets are a set of 0 through 99 linear VSAM data sets of up to 64GB with a maximum of 123 extents. Each Page set is differentiated through their Page Set Identification (PSID) with 0 always being used for the Queue Manager object definitions. 
+
+They functions as the primary on disk storage structure for queues. Each queue is assigned to a specific page set with the queue manager managing the allocation and organization of pages within these datasets. \autocite{ibm2025_mq_ps}
+
+
+\section{Operational State Modeling and Classification}%
+\label{sec:state-modeling}
+
+
+\subsection{Definition of Operational States}%
+\label{subsec:operational-states}
+
+In order to translate raw SMF performance metrics into meaningful and actionable information, a formal definition of operational buffer pool states is required. An operational state represents a clearly defined condition of a buffer pool during a specific measurement interval, based on a combination of selected performance indicators.
+
+The definition of operational states is grounded in caching theory, working set principles, and observed operational failure modes in IBM MQ environments. Instead of evaluating individual metrics in isolation, multiple indicators are combined to reflect the overall behavioral pattern of the buffer pool.
+
+The following core metrics derived from SMF 115 subtype 215 records are considered:
+
+\begin{itemize}
+    \item Buffer pool size
+    \item LOW
+    \item Page replacement rate
+    \item QPSTSOS
+    \item QPSTDMC
+    \item QPSTDWT
+\end{itemize}
+
+\autocite{Paice2020}
+\autocite{ibm2020_mq_smf_intro}
+
+\section{System Management Facility (SMF) and MQ Data Collection}%
+\label{sec:smf}
+
+This section explains what SMF is and how we will collect the data that we will need to analyze.
+
+
+\subsection{Overview of SMF in z/OS}%
+\label{subsec:smf-overview}
+
+Everything that runs on z/OS generates SMF records and each SMF record has their own type.
+IBM MQ also generates SMF data and the types that corresponds with MQ are 115 and 116. These record themselves contain subtypes 
+that hold statistics about queue manager activity, buffer pool usage, I/O behavior, latch contention and page
+residency characteristics. \autocite{ibm2025_mq_smf}
+That is why these records are widely used by system programmers and MQ administrators to analyze performance characteristics however that also makes
+it very complex to analyze
+\autocite{Vasquez2024}.
+
+\subsection{SMF 115 subtype 215 Records}%
+\label{subsec:smf115116}
+
+IBM MQ for z/OS performance data are written as SMF type 115 records. Within record 115 there are subtypes of which 215 contains statistics and data about buffer pools. \autocite{ibm2021_mq_bm_dr}
+
+
+\section{Chapter Conclusion}%
+\label{sec:soa-conclusion}
+
+This chapter provided the theoretical and architectural foundation to contextualize the research problem. First, the IBM Z hardware platform and the z/OS operating system were covered in order to clarify the enterprise environment in which IBM MQ operates. 
+
+Secondly, the internal architecture of IBM MQ for z/OS was discussed, with focus on queue managers, page sets, and buffer pools. Buffer pools are the in memory caching layer that mediates between high speed processing and persistent storage. Their configuration and operational behavior directly influence system performance and I/O efficiency.
+
+The theoretical foundations of memory management and caching were included to provide a basis for buffer pools. Concepts such as locality of reference, working set theory, and thrashing explain why insufficient buffer pool capacity leads to increased page replacement activity and degraded performance. These established principles from computer science remain relevant for modern enterprise messaging systems.
+
+Building upon this theoretical perspective, common operational failure modes of IBM MQ buffer pools were described. Conditions such as sustained high utilization, imbalanced workload distribution, and excessive replacement activity can be interpreted as manifestations of underlying caching dynamics. These conditions are observable through metrics derived from SMF 115 subtype 215 records.
+
+Finally, the characteristics of SMF data collection were reviewed. While SMF provides detailed and reliable performance statistics, the volume and granularity of the data make manual interpretation complex and time consuming. This reinforces the need for a structured and automated method to translate raw performance metrics into meaningful operational states.
+
+In summary: the literature review justifies the development of a rule based classification model that can systematically extrapolate operational states and interpret them from SMF derived metrics. 
+
+The next chapter presents the research methodology, including data extraction, transformation, classification design, and proof of concept implementation.

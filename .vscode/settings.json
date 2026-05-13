@@ -37,7 +37,9 @@
                 "%DOC%"
             ],
             "command": "latexmk",
-            "env": {},
+            "env": {
+             "TEXMF_OUTPUT_DIRECTORY": "%OUTDIR%"
+            },
             "name": "latexmk"
         },
         {
@@ -50,7 +52,9 @@
                 "%DOC%"
             ],
             "command": "xelatex",
-            "env": {},
+            "env": {
+                "TEXMF_OUTPUT_DIRECTORY": "%OUTDIR%"
+            },
             "name": "xelatex"
         },
         {

@@ -1,0 +1,173 @@
+
+\chapter{Phase 2 – Data Acquisition \& Technical Environment Setup}
+\label{ch:phase2}
+
+\section{Introduction}
+
+This phase focuses on acquiring SMF data and establishing the technical environment required to process and expose this data for analysis. The objective is to construct a reliable data pipeline that transforms raw SMF records into a structured format suitable for classification and visualization.
+
+\section{Platform}
+
+This bachelor thesis is implemented for the z16 mainframe with z/OS. 
+
+\section{Data Acquisition: SMFDMP}
+SMF data is cut into the SMF log streams by products. The JCL batch job uses the SMFDMP and is configured to dump the SMF log streams into files daily or when the log stream is saturated. The output can be one big file or multiple smaller files, which are then usually concatenated into one. This ensures continuous data collection. SMF type 115 and subtype 215 must be enabled in the SMFPRMxx parmlib member to allow IBM MQ to emit performance and statistics records. This PoC uses SMF type 115 subtype 215 for buffer pool analysis.
+
+The MP1B supportpac already includes sample JCL job cards for extracting SMF from log streams or datasets and how to run the MQSMF program. You can find these in the mp1b\_mqsmf.pdf document that is included with the installation guide. 
+
+
+\begin{listing}[H]
+\caption{SMFPRMxx}
+\label{lst:config-smfprmxx}
+\begin{minted}{text}
+...
+SYS(
+TYPE(30,70,72,80,110,115,215)
+)
+...
+\end{minted}
+\end{listing}
+
+\subsection{CSV Extraction using MQSMF}
+
+A scheduled JCL batch job executes the MQSMF program on the SMF dump file to extract, format and convert data into CSV. This produces multiple output files, including a CSV file that specifically contains buffer pool statistics. These files are written to a mounted USS (UNIX System Services) directory, enabling further processing.
+
+
+\subsection{Data Storage}
+
+The generated CSV files are stored in a designated USS directory as a rolling 30 day directory. This directory acts as the central data source for the PoC and is structured to allow easy access.
+
+\includegraphics{fileDirectory.png}
+
+\section{Technical Environment Setup}
+
+This bachelor thesis makes use of already existing Rabobank infrastructure, but to make the POC replicable for the reader, a lightweight
+environment is set up.
+
+\subsection{HTTP Server Setup}
+
+The HTTP server is deployed as a z/OS started task and initiated through JCL using BPXBATCH. 
+The started task launches an Apache based HTTP daemon from USS and loads a dedicated 
+configuration file. The configuration exposes the mounted USS directory containing the 
+generated CSV files as the server document root, allowing external components such as 
+Grafana or REST clients to retrieve the files through HTTP endpoints.
+
+
+%%minted
+
+
+\begin{listing}[h]
+    \caption{Started task JCL for HTTP server}
+    \label{lst:jcl-http}
+    \begin{minted}{text}
+        //HTTPSRV  PROC
+        //HTTPD    EXEC PGM=BPXBATCH,
+        // PARM='PGM /usr/lpp/ihsa_zos/bin/httpd -f /u/mqcsv/httpd/conf/httpd.conf -DFOREGROUND'
+        //STDOUT   DD SYSOUT=*
+        //STDERR   DD SYSOUT=*
+        //STDENV   DD *
+        _BPXK_AUTOCVT=ON
+        _BPX_SHAREAS=YES
+        PATH=/bin:/usr/bin:/usr/lpp/ihsa_zos/bin
+        LIBPATH=/lib:/usr/lib:/usr/lpp/ihsa_zos/lib
+        /*
+        //
+    \end{minted}
+\end{listing}
+%%minted
+
+
+%%minted
+\begin{listing}[h]
+\caption{HTTP server config file}
+\label{lst:http-conf}
+\begin{minted}{apache}
+Listen 8080
+
+DocumentRoot "/xujoris/mq/mp1b"
+
+<Directory "/xujoris/mq/mp1b">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
+AddType text/csv .csv
+\end{minted}
+\end{listing}
+%%minted
+
+
+\subsection{REST API Implementation}
+
+A Python REST API is hosted on the HTTP server environment. The API is initialized when the HTTP server starts.
+
+The REST API performs the following tasks:
+
+\begin{itemize}
+    \item Retrieve CSV data from the mounted USS directory
+    \item Process the data using the Pandas library
+    \item Derive additional metrics and calculated fields
+    \item Apply classification logic to determine operational states
+    \item Apply interpretation logic to determine possible interpretations
+    \item Combine multiple information sources to generate advice or investigation starting point
+    \item Expose processed data through REST endpoints
+\end{itemize}
+
+This design enables dynamic access to processed buffer pool data without modifying the underlying SMF extraction process.
+
+\subsection{Security Configuration}
+
+Secure communication is established using TLS. Certificates are configured such that the server presents a certificate signed by a trusted Certificate Authority (CA), ensuring secure and authenticated communication between components. Within Rabobank the test LPAR on which the HTTP server runs forbids basic authentication. The REST API sends a certificate with each HTTP request that has to be in the truststore of Grafana.
+
+
+\section{Visualization Environment}
+
+Grafana is used to visualize the processed data. Grafana will send rest requests to the rest API that is hosted on the HTTP server.  
+
+\subsection{Grafana Integration}
+
+Grafana is configured to retrieve data from the REST API using the Infinity plugin. This allows ingestion of CSV or API based data sources without requiring a traditional database.
+
+\subsection{Dashboard Configuration}
+
+Custom dashboards are created to display:
+
+\begin{itemize}
+    \item Buffer pool utilization over time
+    \item Operational state classification
+    \item Interpretation and advice information
+    \item Trends 
+\end{itemize}
+
+These dashboards provide an intuitive interface for analyzing buffer pool behavior. 
+
+\section{Data Flow Overview}
+
+The complete data pipeline can be summarized as follows:
+
+\begin{enumerate}
+    \item SMF data is produced by products and written to the log streams
+    \item SMF data is written to a partitioned dataset using the SMFDMP program
+    \item SMF data is extracted, parsed, converted to CSV, and written to a directory with a daily scheduled JCL batch job that executes MQSMF
+    \item The directory is hosted on a HTTP server running as a started task
+    \item A Python REST API retrieves and processes the data using Pandas
+    \item Processed data is exposed through API endpoints
+    \item Grafana consumes the API data and visualizes the results
+\end{enumerate}
+
+\section{Limitations}
+
+The technical setup has several limitations:
+
+\begin{itemize}
+    \item Data is processed in batch intervals and is not real time
+    \item The solution depends on the availability of SMF data and scheduled jobs
+    \item The setup is designed for a Proof of Concept and does not include production level scalability or security.
+\end{itemize}
+
+\section{Summary}
+
+This phase established a complete data pipeline from raw SMF records to visualized insights. SMF data is extracted from log streams before being dumped and then parsed to CSV using MQSMF. The CSV is then processed with a Pandas and then made accessible with a Flask REST API. Grafana is used call the API and visualize the received CSV data into intuitive and manageable graphs.
+
+This environment enables the implementation and evaluation of the buffer pool state model defined in the next phase.

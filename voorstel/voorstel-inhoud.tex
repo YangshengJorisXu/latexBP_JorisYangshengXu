@@ -16,9 +16,9 @@
 \label{sec:inleiding}
 
 \subsection{Context and problem}%
-IBM Message Queu plays a critical role in the messaging infrastructure of Rabobank, where reliability, performance, cost efficiency and scalability are essential. One of the ways MQ achieves this is through the use of buffer pools, which are in-memory areas where data and pages are cached to minimize expensive physical I/O operations to and from disk. Well-sized buffer pools are therefore an important factor for performance, whereas incorrectly sized buffer pools can result in inefficient memory utilisation or thrashing behaviour, where excessive page replacements cause performance issues. Factors such as transaction growth, application changes and infrastructure expansion can change buffer pool usage. Therefore, MQ administrators require an ongoing, reliable and accurate view of the operational health of these buffer pools and preferably maintain a balance between underutilisation and memory contention.
+IBM Message Queue plays a critical role in the messaging infrastructure of Rabobank, where reliability, performance, cost efficiency and scalability are essential. One of the ways MQ achieves this is through the use of buffer pools, which are in-memory areas where application data and message payloads are cached to minimize expensive physical I/O operations to and from disk. Well-sized buffer pools are therefore an important factor for performance, whereas incorrectly sized buffer pools can result in inefficient memory utilisation or thrashing behaviour, where excessive page replacements cause performance issues. Factors such as transaction growth, application changes and infrastructure expansion can change buffer pool usage. Therefore, MQ administrators require an ongoing, reliable and accurate view of the operational health of these buffer pools and preferably maintain a balance between underutilisation and memory contention.
 
-SMF generates a large amount of data, of which SMF 115 and 116 records are related to IBM MQ. These are extracted and formatted using the MP1B utility. The generated MP1B reports are the primary data source for MQ performance data. However, these reports mainly provide stand alone metrics without any business context. Similar metric values can belang to different operational states. This causes IBM MQ administrators to rely on manual interpretation, personal experience and knowledge of the local MQ environment. This takes time, causes errors and is difficult to standardise, which result in slow detection of unhealthy buffer pool behaviour or inconsistent interpretations between experts.
+SMF generates a large amount of data, of which SMF 115 and 116 records are related to IBM MQ. These are extracted and formatted using the MP1B utility. The generated MP1B reports are the primary data source for MQ performance data. However, these reports mainly provide stand alone metrics without any business context. Similar metric values can belong to different operational states. This causes IBM MQ administrators to rely on manual interpretation, personal experience and knowledge of the local MQ environment. This takes time, causes errors and is difficult to standardise, which result in slow detection of unhealthy buffer pool behaviour or inconsistent interpretations between experts.
 
 \subsection{Main and sub research questions}%
 The central research question of my bachelor thesis is: How can operational states of IBM MQ buffer pools be inferred from SMF data, and which actionable insights does this approach provide that are lacking in traditional MP1B reports?
@@ -39,12 +39,12 @@ The central research question of my bachelor thesis is: How can operational stat
 \end{itemize}
 
 \subsubsection{Scope}%
-The scope of this bachelor thesis is to research only buffer pool health. This data is stored within sub SMF type 216 within the SMF 115 record.
+The scope of this bachelor thesis is to research only buffer pool health. This data is stored within sub SMF type 215 within the SMF 115 record.
 
 \subsection{Objective, success case and target group}%
 The bachelor thesis will be considered a success if the prototype is able to process real MP1B SMF 115 and 116 data, consistently classify buffer pool operational states in a reliable manner, generate daily reports that are useful to IBM MQ administrators, reduce the amount of manual analysis needed, provide clear early-warning indicators for thrashing buffer pools and show which unused or underutilized buffer pools  can be reduced safely. 
 
- The objective is to develop a rule-based analysis framework that categorises MP1B-formatted SMF buffer pool data into operational health states and produce a daily report of the health state distribution of buffer pools using SAS. The prototype normalises data, reduce dependency on individual expertise, and provides IBM MQ administrators with a consistent tool to support capacity planning, early detection of thrashing behaviour and more reliable decisions.
+ The objective is to develop a rule-based analysis framework that categorises MP1B-formatted SMF buffer pool data into operational health states and produce a daily and monthly report or dashboard of the distribution of operational states using SAS. The report and dashboard should clearly distinguish between the environment, different queue managers and buffer pools. The prototype normalises data, reduces dependency on individual expertise, and provides IBM MQ administrators with a consistent tool to support capacity planning, early detection of thrashing behaviour and more reliable decisions.
 
 %---------- Stand van zaken ---------------------------------------------------
 
@@ -57,20 +57,20 @@ Most products on the market today are capable of collecting and doing statistics
 
 
 
-\subsection{IBM Message Queu (MQ)}%
-IBM MQ is a core middleware component in z/OS environments and is used to handle a large volume, variety and velocity of messages securely. Many different industries depend on MQ. To achieve this performance MQ relies on buffer pools to cache frequently accessed pages of queues in memory to minimise expensive physical I/O operations \autocite{IBMMQ2026}. 
+\subsection{IBM Message Queue (MQ)}%
+IBM MQ is a core middleware component in z/OS environments and is used to handle a large volume, variety and velocity of messages securely. Many different industries depend on MQ. To achieve this performance MQ relies on buffer pools to cache frequently accessed pages of queues in memory to minimise expensive physical I/O operations \autocite{ibm2026_mq}. 
 
 \subsection{What are Buffer Pools and their usage}%
 A buffer pool in IBM MQ is a shared memory structure that stores pages of queue files to improve performance and reduce disk access latency. Poorly configured or overloaded buffer pools can lead to more physical I/O, CPU overhead and in may cause operational instability such as buffer pool thrashing \autocite{Paice2020}.
 
 \subsection{What are Storage Management Facility (SMF) records}%
-Everything that runs on z/OS generates SMF records and each SMF record has their own type. IBM MQ also generates SMF data and the types that corresponds with MQ are 115 and 116. These record themselves contain subtypes that hold statistics about queue manager activity, buffer pool usage, I/O behaviour, latch contention and page residency characteristics \autocite{IBM2025}. That is why these records are widely used by system programmers and MQ administrators to analyse performance characteristics however that also makes it very complex to analyse \autocite{Vasquez2024}.
+Everything that runs on z/OS generates SMF records and each SMF record has their own type. IBM MQ also generates SMF data and the types that corresponds with MQ are 115 and 116. These record themselves contain subtypes that hold statistics about queue manager activity, buffer pool usage, I/O behaviour, latch contention and page residency characteristics \autocite{ibm2025_mq_smf}. That is why these records are widely used by system programmers and MQ administrators to analyse performance characteristics however that also makes it very complex to analyse \autocite{Vasquez2024}.
 
 \subsection{What is MP1B}%
-MP1B is an utility script that formats raw SMF 115 and 116 records into readable reports that can be used for further processing \autocite{IBMMP1B2025}.
+MP1B is an utility script that formats raw SMF 115 and 116 records into readable reports that can be used for further processing \autocite{ibm2025_mp1b}.
 
 \subsection{Performance issues caused by Buffer Pools}%
-The worst state a buffer pool can be in is when the working set of pages required by MQ workloads exceeds the size of the allocated buffer pool, leading to continuous eviction and re-reading of page \autocite{IBM2025}. The original concept of thrashing and the working set model was introduced by Peter J. Denning. Peter defined thrashing as excessive paging activity leading to performance collapse \autocite{Denning1968}.
+The worst state a buffer pool can be in is when the working set of pages required by MQ workloads exceeds the size of the allocated buffer pool, leading to continuous eviction and re-reading of pages \autocite{ibm2025_mq_smf}. The original concept of thrashing and the working set model was introduced by Peter J. Denning. Peter defined thrashing as excessive paging activity leading to performance collapse \autocite{denning1968_working_set}.
 
 \subsection{Why stand alone metric does not give you the full picture}%
 Many industry experts mention the importance of context around data. similar patterns can represent different operational states depending on workload characteristics, access locality and queue design. For example, a high read rate may indicate healthy burst traffic or severe thrashing, making it difficult and slow to interpret. Raw SMF statistics and accounting data are provided in a low-level format with no business context, requiring additional processing and interpretation to derive meaningful performance insights \parencite{Klimaszewski2021}.

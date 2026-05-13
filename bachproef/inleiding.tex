@@ -5,32 +5,107 @@
 \chapter{\IfLanguageName{dutch}{Inleiding}{Introduction}}%
 \label{ch:inleiding}
 
-De inleiding moet de lezer net genoeg informatie verschaffen om het onderwerp te begrijpen en in te zien waarom de onderzoeksvraag de moeite waard is om te onderzoeken. In de inleiding ga je literatuurverwijzingen beperken, zodat de tekst vlot leesbaar blijft. Je kan de inleiding verder onderverdelen in secties als dit de tekst verduidelijkt. Zaken die aan bod kunnen komen in de inleiding~\autocite{Pollefliet2011}:
+\section{\IfLanguageName{dutch}{Context}{Context}}%
+\label{sec:context}
 
-\begin{itemize}
-  \item context, achtergrond
-  \item afbakenen van het onderwerp
-  \item verantwoording van het onderwerp, methodologie
-  \item probleemstelling
-  \item onderzoeksdoelstelling
-  \item onderzoeksvraag
-  \item \ldots
-\end{itemize}
+IBM Message Queue plays a critical role in the messaging infrastructure of Rabobank, where reliability, performance, cost efficiency and scalability are essential. One of the ways MQ achieves this is through the use of buffer pools, which are in memory areas where application data and message payloads are cached to minimize expensive physical I/O operations to and from disk. Correctly tuned and sized buffer pools are therefore an important factor for performance, whereas incorrectly sized buffer pools can result in inefficient memory utilization or thrashing/paging, where excessive page replacements cause performance issues. Factors such as transaction growth, application changes and infrastructure expansion can change buffer pool usage. 
+
+Storage Management Facility (SMF) generates a large amount of data, of which SMF 115 and 116 records are related to IBM MQ. These are gathered and then formatted using the MP1B utility. 
+
+Generated MP1B reports are the primary data source for MQ performance data. However, these reports mainly provide standalone metrics without any business context. Similar metric values can belong to different operational states. This causes IBM MQ administrators to rely on manual interpretation, personal experience and knowledge of the local MQ environment. This takes time, causes errors and is difficult to standardize, which results in slow detection of unhealthy buffer pool behavior or inconsistent interpretations between experts.
+
+As a result, MQ administrators require an ongoing, reliable and accurate view of the operational health of these buffer pools while maintaining a balance between underutilized and memory contention.
 
 \section{\IfLanguageName{dutch}{Probleemstelling}{Problem Statement}}%
 \label{sec:probleemstelling}
+%% who, current way, why problem, gap in research/technologie/methods, proposed solution
 
-Uit je probleemstelling moet duidelijk zijn dat je onderzoek een meerwaarde heeft voor een concrete doelgroep. De doelgroep moet goed gedefinieerd en afgelijnd zijn. Doelgroepen als ``bedrijven,'' ``KMO's'', systeembeheerders, enz.~zijn nog te vaag. Als je een lijstje kan maken van de personen/organisaties die een meerwaarde zullen vinden in deze bachelorproef (dit is eigenlijk je steekproefkader), dan is dat een indicatie dat de doelgroep goed gedefinieerd is. Dit kan een enkel bedrijf zijn of zelfs één persoon (je co-promotor/opdrachtgever).
+Monitoring within the IBM MQ team at Rabobank is primarily performed using MP1B reports. These reports provide detailed performance metrics, but they present standalone numerical values without interpretation.
 
-\section{\IfLanguageName{dutch}{Onderzoeksvraag}{Research question}}%
-\label{sec:onderzoeksvraag}
+Similar or identical metric values may correspond to different operational states or trends depending on workload and system context. As a result, buffer pool health assessment relies on manual interpretation, personal experience and knowledge of the internal MQ infrastructure.
 
-Wees zo concreet mogelijk bij het formuleren van je onderzoeksvraag. Een onderzoeksvraag is trouwens iets waar nog niemand op dit moment een antwoord heeft (voor zover je kan nagaan). Het opzoeken van bestaande informatie (bv. ``welke tools bestaan er voor deze toepassing?'') is dus geen onderzoeksvraag. Je kan de onderzoeksvraag verder specifiëren in deelvragen. Bv.~als je onderzoek gaat over performantiemetingen, dan 
+This approach introduces variability in analysis, increases the risk of inconsistent conclusions that could hinder capacity planning and may delay the detection of structural underutilization or memory contention.
+
+There is currently no formally defined and reproducible operational state classification framework within the studied environment that translates SMF derived buffer pool metrics into clearly distinguishable operational states combined with structured trend analysis.
+
+While analytical tooling may exist to query and visualize SMF data, such approaches typically provide metric level analysis rather than a transparently defined and standardized classification model. Custom solutions, where present, are often organization specific and not formally documented as a reproducible framework.
+This thesis addresses this by proposing a proof of concept that automatically infers operational buffer pool states from SMF 115 subtype 215 data. By translating raw performance metrics into rule based states and structured trend views, the analysis becomes more consistent and less dependent on individual interpretation.
+
 
 \section{\IfLanguageName{dutch}{Onderzoeksdoelstelling}{Research objective}}%
 \label{sec:onderzoeksdoelstelling}
 
-Wat is het beoogde resultaat van je bachelorproef? Wat zijn de criteria voor succes? Beschrijf die zo concreet mogelijk. Gaat het bv.\ om een proof-of-concept, een prototype, een verslag met aanbevelingen, een vergelijkende studie, enz.
+The objective of this thesis is to design, implement and evaluate a proof of concept that enables structured and automated buffer pool health assessment based on SMF data.
+The proof of concept consists of the following components:
+
+\begin{itemize}
+    \item Extraction of SMF 115 subtype 215 data using the MQSMF program in the MP1B supportpac 
+    \item Transformation and analysis of buffer pool metrics, resulting in a platform independent dataset  
+    \item Classification of measurement intervals into predefined operational states using a rule based model  
+    \item Interpretation of measurement intervals into predefined interpretations using rule based thresholds
+    \item Visualization of data on a structured and transparent monitoring dashboard  
+\end{itemize}
+
+The solution must be usable or designed to scale on all relevant infrastructure levels, including SYSPLEX, LPAR, Queue Sharing Group and Queue Manager.
+
+
+
+\section{\IfLanguageName{dutch}{Onderzoeksvraag}{Research question}}%
+\label{sec:onderzoeksvraag}
+
+\subsection{Central Research Question}%
+The central research question is: How can operational states of IBM MQ buffer pools be inferred from SMF data, and
+which actionable insights does this approach provide that are lacking in traditional MP1B reports?
+
+\subsection{Sub Questions: Problem Domain}%
+
+\begin{itemize}
+    \item Which parameters have the largest impact on buffer pool efficiency and health?
+    \item How frequently does the hit ratio fall below 80\%?
+    \item What is the correlation between buffer pool size and hit ratio?
+\end{itemize}
+
+\subsection{Sub Questions: Solution Domain}%
+
+\begin{itemize}
+    \item Which minimal set of buffer pool related SMF metrics is needed to define operational states?
+    
+    \item Which operational buffer pool states can be formally defined based on the selected SMF derived metrics?
+    
+    \item To what extent can a rule based classification model automatically infer buffer pool states for each measurement interval?
+    
+    \item What can be learned from daily operational state distribution analysis?
+\end{itemize}
+
+
+\section{\IfLanguageName{dutch}{Afbakening}{Scope}}%
+\label{sec:afbakening}%
+
+The scope of this bachelor thesis is limited to the development of a proof of concept (POC) that focuses on IBM MQ buffer pool health analysis based on SMF 115 subtype 215 records.
+
+The proof of concept analyzes historical SMF 115 (sub type 215) buffer pool statistics and presents structured, time based insights for an environment:
+
+\begin{itemize}
+    \item Environment (production, test, development)
+    \item Queue manager
+    \item SYSPLEX
+    \item Logical partition (LPAR)
+    \item Queue sharing group
+    \item Buffer pool number
+\end{itemize}
+
+
+The solution aims to identify and visualize:
+
+\begin{itemize}
+    \item Historical high and low utilization points  
+    \item Structural underutilization or memory contention  
+    \item Daily distribution of operational health states  
+    \item Historical and rolling trends of utilization rate, capacity, etc\ldots
+\end{itemize}
+
+Trend analysis in this context refers to descriptive analysis of buffer pool metrics in order to detect recurring patterns, structural changes and periodic behavior.
+This thesis does not include real time monitoring, automated buffer pool resizing, or full production deployment. 
 
 \section{\IfLanguageName{dutch}{Opzet van deze bachelorproef}{Structure of this bachelor thesis}}%
 \label{sec:opzet-bachelorproef}
@@ -39,12 +114,31 @@ Wat is het beoogde resultaat van je bachelorproef? Wat zijn de criteria voor suc
 % geven van de opbouw van de rest van de tekst. Deze sectie bevat al een aanzet
 % die je kan aanvullen/aanpassen in functie van je eigen tekst.
 
-De rest van deze bachelorproef is als volgt opgebouwd:
+The rest of this bachelor thesis is structured as follows:
 
-In Hoofdstuk~\ref{ch:stand-van-zaken} wordt een overzicht gegeven van de stand van zaken binnen het onderzoeksdomein, op basis van een literatuurstudie.
+In Chapter~\ref{ch:stand-van-zaken} the thesis explains what the current state of the field is on the basis of a literature review.
 
-In Hoofdstuk~\ref{ch:methodologie} wordt de methodologie toegelicht en worden de gebruikte onderzoekstechnieken besproken om een antwoord te kunnen formuleren op de onderzoeksvragen.
+%In Hoofdstuk~\ref{ch:stand-van-zaken} wordt een overzicht gegeven van de stand van zaken binnen het onderzoeksdomein, op basis van een literatuurstudie.
+
+
+Chapter~\ref{ch:methodologie} covers the applied methodology and used research methods to gather, analyze and synthesize conclusions. 
+%In Hoofdstuk~\ref{ch:methodologie} wordt de methodologie toegelicht en worden de gebruikte onderzoekstechnieken besproken om een antwoord te kunnen formuleren op de onderzoeksvragen.
+
+Chapter~\ref{ch:phase1} covers an analysis of requirements, stakeholders and conclude with the most relevant parameters of the SMF records.
+Chapter~\ref{ch:phase2} will guide the reader through the technical requirements and setup of the environment that are needed to extract the SMF records.
+
+Chapter~\ref{ch:phase3} will define the distinct operational states that the combination of parameters will map to.
+Chapter~\ref{ch:phase4} outlines the implementation of the POC in the specific Rabobank mainframe environment and alternatives/solutions to problems and delays due to the internal Rabobank environment.
+Chapter~\ref{ch:phase5} evaluates whether the POC and final result fulfills the requirement analysis, is usefull for stakeholders and that parameters are not wrongly interpreted.
+
+Chapter~\ref{ch:phase6} reporting and reflection of study method/subje/research etc\ldots
+
+%Chapter~\ref{ch:expected} compares how expected result and final deliverable match or differ.
 
 % TODO: Vul hier aan voor je eigen hoofstukken, één of twee zinnen per hoofdstuk
+% TODO: uitleg over de verschillende hoofdstukken in mijn thesis
 
-In Hoofdstuk~\ref{ch:conclusie}, tenslotte, wordt de conclusie gegeven en een antwoord geformuleerd op de onderzoeksvragen. Daarbij wordt ook een aanzet gegeven voor toekomstig onderzoek binnen dit domein.
+% TODO: add in to automatically host this on http server/batch job in WLM and or excel integration ? 
+In Chapter~\ref{ch:conclusie}, You will find the conclusion of my bachelor thesis. In the conclusion you will find the final result for both the main research question and the sub questions. Interested parties will also find material on interesting ideas on which to build or serve as inspiration for further research.
+
+%In Hoofdstuk~\ref{ch:conclusie}, tenslotte, wordt de conclusie gegeven en een antwoord geformuleerd op de onderzoeksvragen. Daarbij wordt ook een aanzet gegeven voor toekomstig onderzoek binnen dit domein.

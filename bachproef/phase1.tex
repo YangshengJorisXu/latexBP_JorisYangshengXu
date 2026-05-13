@@ -1,0 +1,88 @@
+\chapter{Phase 1 – Analysis}
+\label{ch:phase1} 
+
+Phase 1 analysis several aspects of this bachelor thesis' POC. The stakeholder analysis outlines both the primary and secondary stakeholder needs. The analysis itemizes and explains what each stakeholders need from the PoC. The requirement analysis itemizes the specific functional requirements that have to be met for the MQ administrators. The analysis also lists the non-functional requirements that are not part of the PoC, but are requirements to adhere to the security standards of Rabobank. The third analysis is a risk analysis, that analyzes 3 major risks that could cause the PoC to not be representative in a real environment. The last part is a pre-analysis of major parameters of SMF and possible groupings. 
+
+
+\section{Stakeholder Analysis}
+
+\subsection{Primary Stakeholders}
+\subsubsection{MQ administrators}
+Rabobank MQ administrators are responsible for monitoring and tuning queue managers. They require fast and reliable insight into buffer pool behavior to diagnose performance issues.
+\subsubsection{System programmers}
+System programmers focus on system level configuration and resource allocation, requiring a deeper understanding of memory usage and I/O behavior.
+
+
+\subsection{Secondary Stakeholders}
+\subsubsection{Middleware architect}
+Middleware architects are responsible for defining the overall structure and design of IBM MQ environments. While this thesis primarily targets operational use by MQ administrators, the resulting insights can also support architectural decisions such as capacity planning and system optimization.
+\subsubsection{Platform administrator}
+Infrastructure or platform engineers are responsible for providing and maintaining the technical environment required to host and expose the PoC. This includes configuring servers, managing certificates, and ensuring secure communication.
+
+Their role in this thesis is to facilitate deployment and integration of the developed solution within an enterprise environment.
+\subsubsection{Product owner}
+The product owner or project coordinator is responsible for prioritizing work and facilitating collaboration between different teams. In the context of this thesis, this role supports access to relevant systems, data, and domain experts.
+
+
+\subsection{Stakeholder Needs}
+\begin{itemize}
+    \item Consistent interpretation of buffer pool metrics
+    \item Faster problem diagnosis
+    \item Clear and actionable insights
+    \item manage the infrastructure efficiently 
+\end{itemize}
+
+\section{Requirement Analysis}
+
+\subsection{Functional Requirements}
+\begin{itemize}
+    \item Extract and convert SMF record type 115 into a structured CSV dataset using MQSMF 
+    \item Analyze and interpret buffer pool CSV records based on defined metrics and thresholds
+    \item Aggregate data across relevant dimensions such as LPAR, queue manager, and buffer pool
+    \item Provide visualization of results using Grafana
+    \item Perform trend analysis over a rolling time window (e.g., 30 days)
+    \item Clear overview of all buffer pools
+\end{itemize}
+
+\subsection{Non-Functional Requirements}
+\begin{itemize}
+    \item Security through the API design and TLS protocol
+    \item Accuracy and consistency: visualization should be deterministic. Repeated visualization have to yield the same result
+    \item Usability and clarity of output, The target audience are MQ admins, but the PoC should be usable to system programmers with documentation. 
+\end{itemize}
+
+\section{Risk Analysis}
+
+There are several real and important risks to consider that could make the PoC not be representative in a real production environment.
+
+\begin{itemize}
+    \item Limited availability of SMF data  
+    Mitigation: Use representative datasets and, where necessary, generate mock data to simulate realistic scenarios.
+    
+    \item Incorrect interpretation of metrics  
+    Mitigation: Validate assumptions using IBM documentation and subject matter experts.
+    
+    \item Limited validation opportunities  
+    Mitigation: Cross check results against manual MP1B analysis.
+\end{itemize}
+
+\section{Initial Parameter Analysis}
+
+MQ buffer pool SMF records contain a large number of attributes, many of which are not directly relevant for assessing operational state. Therefore, emphasis is placed on a subset of key parameters that influence buffer pool behavior.
+
+These parameters can be grouped as follows:
+
+\begin{itemize}
+    \item Utilization metrics (e.g., buffer pool usage percentage)
+    \item Efficiency metrics (e.g., is the buffer pool adequately sized for the workload it is serving) %//how should i write this better ? 
+    \item Stress indicators (e.g., increased paging activity or I/O frequency)
+\end{itemize}
+
+These parameters form the basis for the classification model and interpretation layer developed in later phases.
+
+
+\section{Summary}
+
+This phase translated the problem domain into a structured analysis by identifying key stakeholders and their needs, and by defining functional and non-functional requirements for the PoC. Additionally, potential risks were identified together with mitigation strategies, and an initial set of relevant buffer pool parameters was established.
+
+These outcomes form the foundation for the next phase, in which SMF data is acquired and prepared for further analysis.

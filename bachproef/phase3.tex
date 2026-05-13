@@ -1,0 +1,710 @@
+\chapter{Phase 3 – Classification and Interpretation Framework for Buffer Pool Health}
+\label{ch:phase3}
+
+
+\section{Introduction}
+
+This phase presents a classification and interpretation framework to extrapolate the operational health of IBM MQ buffer pools based on MP1B CSV performance data. The objective is to transform low level statistical metrics into structured, interpretable operational states that support analysis and decision making.
+
+The proposed approach follows statistical classification, where a set of input features is mapped to categories. In this framework, buffer pool metrics serve as features while operational states represent classification labels. 
+
+This requires:
+\begin{itemize}
+    \item Selection of relevant performance indicators
+    \item Definition of meaningful operational states
+    \item A formal mapping between metrics and states
+    \item An interpretation layer that interprets performance indicators
+    \item An advice layer that proposes measures to improve the buffer pool
+\end{itemize}
+
+\section{Feature Selection}
+
+\subsection{Purpose}
+
+The classification framework is based on a subset of SMF 115 subtype 215 metrics that give a snapshot on the health of a buffer pool. The MQSMF buffer pool CSV file is divided into several functional categories. After that a set of derived features are calculated to facilitate the classification and interpretation of records. The selection of features is done so that classification and interpretation of records is accurate, relevant, explainable and robust.
+
+\subsection{Metric Classification}
+
+Every CSV record contains multiple columns that are relevant to see buffer pool metrics and usage. The MP1B guide document that is delivered with the supportpac uses a subset of these metrics to assess utilization, memory pressure, I/O activity, and access patterns. 
+
+\subsubsection{Utilization Metrics}
+
+Utilization metrics describe how much of the buffer pool capacity is used during a given interval. Size is how large the buffer pool in question is. Used\_now shows the amount of buffers that are currently in use. Highest\_used is used to show the maximum amount of buffers that was used in the given interval. Lowest\_free is used to show the lowest amount of free buffers there were available in a given interval. The last metric in for utilization data is \% hfull, this metric is used to reflect the maximum percentage utilization rate in a given interval. 
+
+\begin{itemize}
+    \item \texttt{size}
+    \item \texttt{used\_now}
+    \item \texttt{highest\_used}
+    \item \texttt{lowest\_free}
+    \item \texttt{\% hfull}
+\end{itemize}
+
+These metrics are used as the primary basis to determine operational states such as underutilized, balanced, or pressured.
+
+\subsubsection{Memory Pressure Metrics}
+
+Memory pressure metrics indicate how many times there was a response to a situation where the buffer pool did not have enough memory or came close to not having enough memory. There are several thresholds in increasing severity. The most severe metric being Short On Storage (SOS). A not 0 value for SOS means that there was a moment in the interval were the buffer pool had 0 free buffers left. This means that each action lead to a synchronous write/read. We want to avoid this at all cost. \#\_sync\_write is the amount of synchronous writes that happened during the interval. Synchronous writes happen when the amount of free buffers left is under 5\%. The amount of synchronous writes should generally be under 100. The Deferred Write Threshold is a threshold that activates asynchronous writes of current dirty pages to be written out to the DASD. This threshold is at 85\% utilization or when the amount of free buffers left is less than 15\% of the total buffer pool.
+
+\begin{itemize}
+    \item \texttt{SOS}
+    \item \texttt{\#\_sync\_write}
+    \item \texttt{DWT}
+\end{itemize}
+ 
+ 
+\subsubsection{I/O Activity Metrics}
+
+I/O metrics describe interactions between the buffer pool and disk located page sets. The \#\_read\_I/Os reflects the amount of times a page was requested, but not in the buffer pool, causing an read I/O. The \#\_write\_I/Os reflects the amount of times a page was written to the DASD. There are several reasons that a page was written to the page set causing a write I/O. A write I/O can be either synchronous, which is caused by SOS, IMW or asynchronously due to DWT or staying in the buffer pool for more than 2 syncpoints. 
+
+\begin{itemize}
+    \item \texttt{\#\_read\_I/Os}
+    \item \texttt{\#\_write\_I/Os}
+    \item \texttt{\#\_pg\_writes}
+\end{itemize}
+
+These metrics are used to assess disk dependency and potential I/O pressure.
+
+\subsubsection{Efficiency Metrics}
+
+These metrics can provide insight into how efficient the buffer pool is for the current workload. These two metrics indicate how many new 4kb page frames were requested. These two metrics can be translated to cache hit or miss, and used to derive features like cache efficiency.  
+
+\begin{itemize}
+    \item \texttt{\#\_get\_new\_pg}
+    \item \texttt{\#\_get\_old\_pg}
+\end{itemize}
+
+A ratio of new pages to old pages that is close to 1 can indicate a balanced application, and efficient usage of buffers. 
+
+\subsubsection{Configuration Attributes}
+
+Configuration attributes describe how a buffer pool is defined and allocated in memory. These attributes provide important context for interpreting buffer pool performance and formulating recommendations in the advice layer.
+
+Buffer pools can be allocated either below or above the 2GB address bar. The bar refers to the 31 bit addressing limit in z/OS. Buffer pools allocated below the bar are constrained by limited addressable memory, whereas buffer pools allocated above the bar can utilize significantly larger memory regions. This distinction has a direct impact on scalability and possible to memory pressure.
+
+In addition, buffer pools operate on pages of a fixed size, typically 4KB, 8KB, or 16KB depending on the configuration. Each buffer pool is defined with a single page size, although different buffer pools within the same system may use different page sizes.
+
+Larger page sizes can reduce I/O frequency for sequential workloads, while smaller pages may be more efficient for random access patterns.
+
+Some buffer pools may also use page fixing, where pages are fixed in real memory to avoid paging overhead. While this can improve performance, there is a trade off between CPU and storage and must be carefully managed and planned.
+
+\begin{itemize}
+    \item \texttt{Location} (below or above the 2GB bar)
+    \item \texttt{PageClass} (page size classification)
+\end{itemize}
+
+These attributes are not used directly for classification, but are incorporated in the advice layer to provide context aware recommendations.
+
+\subsection{Derived Feature Dimensions}
+
+Three derived features support the classification model.
+
+\subsubsection{Utilization Features}
+
+\begin{itemize}
+    \item Current utilization (\texttt{used\_now} / \texttt{size})
+    \item Peak utilization (\texttt{highest\_used} / \texttt{size})
+    \item Minimum free capacity (\texttt{lowest\_free} / \texttt{size})
+\end{itemize}
+
+These features reflect memory usage and capacity pressure.
+
+\subsubsection{Efficiency Features}
+
+
+Efficiency describes how effectively the buffer pool avoids disk I/O.
+
+\begin{itemize}
+    \item Hit Ratio
+    \item Page reuse characteristics (\texttt{\#\_get\_old\_pg} vs \texttt{\#\_get\_new\_pg})
+\end{itemize}
+
+Due to the absence of a direct hit ratio metric in SMF 115 subtype 215, efficiency is extrapolated indirectly through I/O and access patterns.
+
+
+\subsection{Feature Justification}
+
+These features are chosen and categorized to ensure that the classification framework is accurate, reproducible, and deterministic. Accuracy is achieved by selecting features that directly reflect underlying buffer pool mechanisms, such as memory utilization, I/O activity, and write pressure, ensuring that the resulting operational states correspond to real system behavior.
+
+reproducibility is ensured by relying on consistently available SMF 115 subtype 215 metrics and clearly defined derived features, allowing the same input data to output identical results across different environments and executions.
+
+Determinism is achieved through explicit threshold based rules applied to the selected features, ensuring that each input record is always mapped to the same operational state without ambiguity.
+
+Additionally, the selected features are non redundant and interpretable, enabling the consistent classification while supporting the interpretation and advice layers of the framework.
+
+\begin{itemize}
+    \item High utilization combined with pressure indicators (e.g. DWT, synchronous writes) suggests insufficient memory capacity
+    \item High I/O activity indicates reduced caching effectiveness or workload induced churn
+    \item Access pattern imbalance (e.g. low \texttt{\#\_get\_old\_pg}) may indicate inefficient access such as scanning or browsing
+    \item Stable utilization combined with low I/O activity reflects balanced and efficient operation
+\end{itemize}
+
+By combining utilization, efficiency, and I/O activity dimensions, the model captures both resource usage and workload behavior, enabling a more accurate classification of buffer pool health.
+
+Other approaches to implementing a classification framework, such as machine learning models, were considered. However, these methods were not chosen due to the need for interpretability and transparency. At Rabobank, it is essential to clearly understand how and why a buffer pool is classified into a specific state as this directly impacts analysis and decisions. 
+
+A rule based approach was therefore preferred, as it provides deterministic behavior, explicit thresholds, and traceable decision logic.
+
+\subsection{Summary}
+
+This section described the selected SMF 115 subtype 215 metrics used by the classification framework. The metrics were grouped into utilization, memory pressure, I/O activity, efficiency, and configuration attributes. In addition, derived features such as current utilization, peak utilization, minimum free capacity, and an indirect efficiency ratio were introduced to make the raw MP1B data more suitable for deterministic classification.
+
+The selected features were chosen because they are consistently available, technically explainable, and directly related to buffer pool behavior. This supports a reproducible and interpretable rule based classification model. Machine learning approaches were not selected because the goal of the framework is not only to classify records, but also to make the classification logic transparent and usable for operational analysis. 
+
+
+\section{Operational State Model}
+
+\subsection{Purpose}
+
+The purpose of the operational state model is to categorize CSV records into operational states based on a combination of utilization rate, memory pressure indicators, and I/O activity of the buffer pool. This is the base layer where other layers work further on. 
+
+\subsection{Definition of Operational States}
+
+Based on the selected features, a set of operational states is defined. 
+Each state represents a distinct condition of the buffer pool, based primarily on
+utilization and complemented by pressure and I/O indicators.
+
+The states are evaluated in order of severity, where critical conditions override 
+utilization based classifications.
+
+\subsubsection{Underutilized}
+
+This state is characterized by low buffer pool utilization and minimal I/O activity. 
+It indicates that allocated memory is not effectively used by the workload, suggesting 
+over provisioning or low demand.
+
+\subsubsection{Balanced}
+
+The balanced state represents optimal buffer pool behavior. It is characterized by 
+moderate utilization, limited I/O activity, and absence of pressure indicators. 
+This state serves as the reference baseline for healthy operation.
+
+\subsubsection{High Utilization}
+
+This state indicates that the buffer pool is operating near its capacity limits. 
+It is characterized by high utilization and DWT activity
+
+\subsubsection{Critical Utilization}
+This state indicates that the buffer pool is operating at or near full capacity. 
+Although not necessarily experiencing immediate degradation, the risk 
+of pressure conditions is significantly increased.
+
+\subsubsection{Thrashing}
+Thrashing represents a critical condition where the buffer pool is under sustained 
+pressure. It is characterized by very high utilization combined with pressure 
+indicators such as synchronous writes (IMW) or SOS events. This results in excessive 
+page replacement and significant I/O, leading to performance degradation.
+
+\subsection{Threshold Definition}
+
+The classification model uses threshold values to translate performance metrics into discrete operational states. These thresholds are not intended to represent universal IBM MQ limits, but serve as configurable boundaries for the PoC implementation.
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Feature} & \textbf{Threshold} & \textbf{Role} \\
+        \hline
+        Current utilization & $< 50\%$ & Underutilized \\
+        \hline
+        Current utilization & $50\%-75\%$ & Balanced \\
+        \hline
+        Current utilization & $75\%-95\%$ & High Utilization \\
+        \hline
+        Current utilization & $> 95\%$ & Critical Utilization \\
+        \hline
+        Synchronous writes (IMW) & $> 0$ & Pressure indicator \\
+        \hline
+        Deferred writes (DWT) & $> 0$ & Pressure indicator \\
+        \hline
+        SOS count & $> 0$ & Severe pressure indicator \\
+        \hline
+    \end{tabular}
+    \caption{Threshold values used by the classification model}
+\end{table}
+
+
+\subsection{Classification Rules}
+
+Each observation is assigned exactly one operational state using a priority based evaluation. Rules are applied from most severe to least severe. 
+Once a condition is met, no further rules are evaluated.
+
+\begin{itemize}
+    
+    \item \textbf{Thrashing:} 
+    Assigned when severe pressure conditions are observed:
+    \begin{itemize}
+        \item $\mathrm{SOS} > 0$, or
+        \item $\mathrm{\#\_sync\_write} > 0$ in combination with high utilization ($> 95\%$)
+    \end{itemize}
+    This indicates that the buffer pool cannot sustain the workload and is 
+    experiencing excessive I/O and page replacement.
+    
+    \item \textbf{Critical Utilization:} 
+    Assigned when utilization exceeds $95\%$ without severe pressure indicators.
+    
+    \item \textbf{High Utilization:} 
+    Assigned when utilization is between $75\%$ and $95\%$.
+    
+    \item \textbf{Balanced:} 
+    Assigned when utilization is between $50\%$ and $75\%$ and no pressure 
+    indicators are present.
+    
+    \item \textbf{Underutilized:} 
+    Assigned when utilization is below $50\%$.
+    
+\end{itemize}
+
+\subsection{Summary}
+This section explained the core of the thesis. The different operational states were defined with clear threshold definitions. The classification rules ensure that each buffer pool can only be assigned one operational state.  
+
+
+\section{Interpretation Layer}
+
+\subsection{Purpose}
+
+The purpose of the interpretation layer is to provide a possible cause for the operational state of the buffer pool. While the operational state describes \textit{what} is happening in terms of utilization and pressure, the interpretation layer can be used to explain why the buffer pool state is the way it is.
+
+This layer sits on top of the operational state model. A buffer pool interval can have multiple interpretation patterns and should be looked at together.
+The interpretation layer complements the operational state classification by finding possible root causes. By combining operational states with one or more interpretations, the model can provide more specific recommendations instead of generic threshold based alerts.
+
+It is important to note that the interpretations are not definitive and are to be used as a recommendation and first step in performance analysis. All interpretations should ultimately be validated by an MQ administrator.
+
+\subsection{Capacity and Memory Related Interpretations}
+
+\subsubsection{Memory Pressure}
+
+Indicates that the buffer pool is unable to keep the active working set in memory, resulting in increased write activity to relieve pressure.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item High buffer pool utilization
+    \item Presence of synchronous writes (\texttt{\#\_sync\_write})
+    \item Deferred write threshold activity (\texttt{DWT})
+\end{itemize}
+
+\textit{Derived indicator:}
+\[
+utilization = \frac{used\_now}{size} \times 100
+\]
+
+\textit{Trigger conditions:}
+\[
+utilization > 85\% \;\land\; (\#\_sync\_write > 0 \;\lor\; DWT > 0)
+\]
+
+\textit{Interpretation:}  
+The buffer pool operates near capacity and is forced to write dirty pages to disk, indicating insufficient memory for the current workload.
+
+\textit{Limitation:}  
+Short lived spikes in utilization may trigger this condition without sustained memory shortage.
+
+
+\subsubsection{Short on Storage (SOS)}
+
+Represents a critical condition in which no free buffers were available for use.
+
+\textit{Observable signal:}
+\begin{itemize}
+    \item SOS
+\end{itemize}
+
+\textit{Trigger condition:}
+\[
+SOS > 0
+\]
+
+\textit{Interpretation:}  
+The buffer pool is fully utilized, preventing allocation of new buffers.
+
+\textit{Limitation:}  
+None. This is a direct signal from MQ.
+
+
+
+\subsubsection{Overprovisioned / Underutilized}
+
+Indicates that allocated buffer pool capacity exceeds workload requirements.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item Low buffer utilization
+    \item Minimal synchronous write activity
+    \item Minimal I/O activity
+\end{itemize}
+
+\textit{Derived indicator:}
+\[
+utilization = \frac{used\_now}{size} \times 100
+\]
+
+\textit{Trigger conditions:}
+\[
+ 50\% \;\land\; \#\_sync\_write \approx 0 \;\land\; DWT \approx 0
+\]
+
+\textit{Interpretation:}  
+A significant portion of the buffer pool remains unused, suggesting that allocated memory may be too much.
+
+\textit{Limitation:}  
+Low utilization during off peak periods may not indicate structural over allocation.
+
+
+\subsection{I/O and Throughput Related Interpretations}
+
+\subsubsection{High Throughput Workload}
+
+Represents sustained system activity with efficient buffer utilization.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item High I/O activity
+    \item Low synchronous write activity
+    \item Limited deferred write activity
+\end{itemize}
+
+\textit{Trigger conditions:}
+\[
+(\#\_read\_I\/Os + \#\_write\_I\/Os) > T_{io} \;\land\; \#\_sync\_write \approx 0 \;\land\; DWT \approx 0
+\]
+
+\textit{Interpretation:}  
+The system processes a high volume of data while maintaining efficient memory usage, indicating a well sized buffer pool.
+
+\textit{Limitation:}  
+Threshold selection for high I/O is dependent on the company.
+
+
+
+\subsubsection{Synchronous Write Pressure}
+
+Indicates that immediate disk writes were required to free buffers.
+
+\textit{Observable signal:}
+\begin{itemize}
+    \item Synchronous write count (\texttt{\#\_sync\_write})
+\end{itemize}
+
+
+
+\textit{Trigger condition:}
+\[
+\#\_sync\_write > 0
+\]
+
+\textit{Interpretation:}  
+The buffer pool cannot free space quickly enough asynchronously, forcing synchronous writes that degrade performance.
+
+\textit{Limitation:}  
+Synchronous writes can occur without structural issues; sustained activity is more indicative.
+
+
+\subsubsection{Deferred Write Pressure}
+
+Indicates frequent activation of deferred write processing due to high buffer utilization.
+
+\textit{Observable signal:}
+\begin{itemize}
+    \item Deferred Write Threshold triggers (\texttt{DWT})
+\end{itemize}
+
+\textit{Derived indicator:}
+\[
+utilization = \frac{used\_now}{size} \times 100
+\]
+
+\textit{Trigger condition:}
+\[
+DWT > 0 \;\land\; utilization > 85\%
+\]
+
+\textit{Interpretation:}  
+The system proactively writes modified pages to disk to prevent buffer exhaustion, suggesting elevated memory pressure.
+
+\textit{Limitation:}  
+Deferred writes are part of normal operation and only indicate concern when frequent.
+
+
+\subsection{Access Pattern Interpretations}
+
+\subsubsection{Poor Locality / Inefficient Reuse}
+
+
+Indicates that pages are not effectively reused within the buffer pool.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item High new page requests
+    \item Relatively low reuse of existing pages
+\end{itemize}
+
+\textit{Derived indicator:}
+\[
+hit\_ratio = \frac{\#\_get\_old\_page}{\#\_get\_old\_page + \#\_get\_new\_page} \times 100
+\]
+
+\textit{Trigger condition:}
+\[
+hit\_ratio < T_{hit\_ratio}
+\]
+
+\textit{Interpretation:}  
+The workload exhibits poor locality, leading to inefficient caching and increased I/O activity.
+
+\textit{Limitation:}  
+Sequential workloads may naturally produce low reuse without indicating inefficiency.
+
+
+\subsection{Composite Workload Pattern Interpretations}
+
+\subsubsection{Bursty Workload Candidate}
+
+Indicates a generally stable buffer pool behavior that is periodically disrupted by short lived workload spikes.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item Stable utilization across most intervals
+    \item Occasional sharp increases in utilization
+    \item Temporary increases in DWT, IMW, or I/O activity during spikes
+\end{itemize}
+
+\textit{Trigger conditions:}
+\[
+\sigma(utilization) < T_{stable} \;\land\; max(utilization) - avg(utilization) > T_{spike}
+\]
+\[
+\land\; (DWT > 0 \;\lor\; \#\_sync\_write > 0 \;\lor\; (read\_IO + write\_IO) > T_{io})
+\]
+
+\textit{Interpretation:}  
+The buffer pool operates efficiently under normal conditions but is intermittently stressed by bursty workload behavior. This may indicate that specific workloads temporarily disrupt otherwise stable operation.
+
+\textit{Limitation:}  
+Short observation windows may misclassify normal variation as burst behavior.
+
+
+\subsubsection{Mixed Workload (Long and Short Lived Messages)}
+
+Indicates the coexistence of reusable pages and pages that are written out under pressure.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item Relatively high hit ratio 
+    \item Deferred write activity (\texttt{DWT})
+\end{itemize}
+
+\textit{Derived indicator:}
+\[
+hit\_ratio = \frac{\#\_get\_old\_page}{\#\_get\_old\_page + \#\_get\_new\_page} \times 100
+\]
+
+\textit{Trigger conditions:}
+\[
+hit\_ratio > T_{hit\_high} \;\land\; DWT > 0
+\]
+
+\textit{Interpretation:}  
+Part of the workload benefits from buffer reuse, while another part generates sufficient write pressure to trigger deferred writes. This pattern is consistent with mixed workloads, such as a combination of long and short lived messages sharing the same buffer pool.
+
+\textit{Limitation:}  
+The hit ratio is an approximation and may not fully capture access locality.
+
+
+\subsubsection{Localized Write Pressure in an Underutilized Pool}
+
+Indicates the presence of write pressure despite low overall memory usage.
+
+\textit{Observable signals:}
+\begin{itemize}
+    \item Low buffer pool utilization
+    \item Presence of deferred write activity (\texttt{DWT})
+\end{itemize}
+
+\textit{Derived indicator:}
+\[
+utilization = \frac{used\_now}{size} \times 100
+\]
+
+\textit{Trigger conditions:}
+\[
+utilization < 50\% \;\land\; DWT > 0
+\]
+
+\textit{Interpretation:}  
+Although the buffer pool is not close to the 85\%, certain workloads trigger deferred writes. This may indicate inefficient workload distribution or localized pressure rather than a general memory shortage.
+
+\textit{Limitation:}  
+Transient workloads may produce this pattern without structural inefficiencies.
+
+
+
+\subsection{Summary}
+
+The interpretation layer extends the operational state classification by providing probable causes on why a buffer pool exhibits a certain behavior. While the operational state model identifies what is happening based on utilization and pressure indicators, the interpretation layer analyzes combinations of metrics to suggest possible underlying causes.
+
+Interpretations are grouped into four main categories: capacity and memory related conditions, I/O and throughput characteristics, workload behavior patterns, and access patterns. Each interpretation is defined using threshold based conditions derived from SMF metrics, enabling consistent and deterministic identification of potential issues such as memory pressure, I/O bottlenecks, inefficient reuse, or mixed workloads.
+
+A single buffer pool interval can trigger multiple interpretations. These interpretations are not definitive and serve as the first steps in further investigation. By combining operational states with interpretation patterns, the framework provides a more nuanced and actionable understanding of buffer pool behavior, forming the basis for the next section that returns advice based on the operational and interpretation layer.
+
+\section{Advice Layer}
+
+
+\subsection{Purpose }
+
+The advice layer translates the output of the operational and interpretation layer into concrete recommendations. While the classification model identifies \textit{what} state a buffer pool is in, and the interpretation layer provides possible root causes about \textit{why} this state occurs, the advice layer focuses on the appropriate \textit{response}.
+
+The purpose of this layer is to support decision making by linking observed patterns in buffer pool behavior to a set of structured recommendations. In this way, the framework does not stop at descriptive analysis, but also provides guidance for possible optimization and investigations.
+
+\subsection{Position Within the Framework}
+
+The advice layer is the final layer of the classification framework. It builds on the outputs of the preceding layers and converts them into practical guidance.
+
+\begin{center}
+    \textit{SMF Data $\rightarrow$ Feature Engineering $\rightarrow$ Operational State Classification $\rightarrow$ Interpretation Layer $\rightarrow$ Advice Layer}
+\end{center}
+
+Within this structure:
+\begin{itemize}
+    \item the \textbf{feature engineering layer} defines which indicators are extracted from the raw SMF data;
+    \item the \textbf{classification model} determines the operational state of the buffer pool;
+    \item the \textbf{interpretation layer} provides possible explanations for the observed behavior;
+    \item the \textbf{advice layer} derives possible actions or next steps.
+\end{itemize}
+
+\subsection{Design Principles}
+
+The advice layer is designed according to 3 principles. 
+
+\begin{itemize}
+    \item \textbf{Actionable} \\
+    Recommendations should be concrete enough to support and explain actions.
+    
+    \item \textbf{Context aware} \\
+    Recommendations should depend on the observed state, the interpretation, and relevant configuration attributes.
+    
+    \item \textbf{Advice} \\
+    Recommendations are not mandatory, but suggestions that require an MQ administrator to validate.
+\end{itemize}
+
+\subsection{Inputs to the Advice Layer}
+
+The advice layer derives recommendations from a combination of three input types:
+
+\begin{itemize}
+    \item \textbf{Operational state} \\
+    The category of the buffer pool, such as \textit{Underutilized}, \textit{Balanced}, \textit{High Utilization}, \textit{Critical Utilization}, or \textit{Thrashing}.
+    
+    \item \textbf{Interpretations} \\
+    One or more diagnostic hypotheses, such as \textit{Memory Pressure}, \textit{Mixed Workload}, \textit{Poor Locality}, or \textit{Deferred Write Pressure}.
+    
+    \item \textbf{Configuration attributes} \\
+    Relevant technical properties such as \texttt{Location} and \texttt{PageClass} influence optimization actions.
+\end{itemize}
+
+recommendations are as a result not derived from a single operational state and interpretation. 
+
+\subsection{Recommendation Categories}
+
+Recommendations are grouped into four categories.
+
+\subsubsection{Capacity recommendations}
+
+These recommendations address insufficient or excessive memory allocation.
+
+\begin{itemize}
+    \item Increase the size of the buffer pool
+    \item reevaluate the capacity of the current buffer pool size.
+\end{itemize}
+
+\subsubsection{Configuration recommendations}
+
+Configuration recommendations focus on technical configuration choices that may improve buffer pool performance.
+
+\begin{itemize}
+    \item Evaluate the use of fixed pages
+    \item Evaluate placement above the bar
+\end{itemize}
+
+\subsubsection{Workload oriented recommendations}
+
+Workload oriented recommendations focus on application and usage behavior rather than on memory allocation.
+
+\begin{itemize}
+    \item Investigate scan or browse heavy access patterns
+    \item Investigate if queues are indexed
+    \item Consider application or workload isolation
+\end{itemize}
+
+\subsubsection{Monitoring and Investigation Recommendations}
+
+These recommendations focus on further analysis rather than immediate change.
+
+\begin{itemize}
+    \item Monitor the trend over multiple intervals
+    \item Investigate transient spikes before structural adjustment
+\end{itemize}
+
+\subsection{Recommendation Mapping Logic}
+
+The advice layer uses rule based mappings from operational states and interpretations to recommendations. Unlike the classification model, which aims to assign a state as consistently as possible, the advice layer may generate multiple recommendations for a single interval.
+
+\begin{table}[h]
+    \centering
+    \renewcommand{\arraystretch}{1.3}
+    \begin{tabular}{|p{3.2cm}|p{4.2cm}|p{5.6cm}|}
+        \hline
+        \textbf{Operational State} & \textbf{Interpretation} & \textbf{Advice} \\
+        \hline
+        High Utilization & Memory Pressure & Evaluate buffer pool expansion \\
+        \hline
+        Thrashing & Memory Pressure, I/O Pressure & Increase capacity and investigate page churn \\
+        \hline
+        Balanced & High Throughput Workload & No direct action required; continue monitoring \\
+        \hline
+        Underutilized & Over provisioned / Underutilized & Reassess whether the allocated size is justified \\
+        \hline
+        Any state & Mixed Workload & Consider workload or application isolation \\
+        \hline
+    \end{tabular}
+    \caption{Illustrative mapping from states and interpretations to recommendations}
+\end{table}
+
+
+\subsection{Illustrative Examples}
+
+The following examples illustrate how the advice layer can be applied.
+
+\paragraph{Example 1: Structural Memory Pressure}
+A buffer pool shows high utilization over multiple intervals, a low number of free buffers, and repeated synchronous write activity. The classification model labels this condition as \textit{High Utilization} or \textit{Thrashing}, while the interpretation layer suggests \textit{Memory Pressure}. In this case, the advice layer may recommend evaluating an increase in buffer pool size and validating whether sufficient memory is available for expansion.
+
+\paragraph{Example 2: Mixed Workload Characteristics}
+A buffer pool exhibits inconsistent behavior across intervals, alternating between balanced operation and elevated I/O activity. The interpretation layer suggests a \textit{Mixed Workload}. In this case, the advice layer may recommend investigating which applications share the buffer pool and whether workload isolation would improve predictability and efficiency.
+
+\paragraph{Example 3: Configuration Oriented Optimization}
+A buffer pool displays high I/O activity and sustained pressure, while its configuration attributes indicate that its current memory placement may not be optimal. In such a case, the advice layer may recommend evaluating the use of fixed 4KB pages above the bar, provided that this is technically feasible within the broader system context.
+
+\subsection{Scope and Limitations}
+
+The advice layer should not be interpreted as foolproof advice. Its output consists of structured recommendations rather than definitive results. The generated advice is based only on the evidence available in the SMF data and does not capture the full application, queue, or system context.
+
+As a result, the proposed actions should be used as a supporting tool for expert analysis rather than as replacements for judgment. In particular, recommendations involving configuration changes or workload isolation should always be validated against available storage, system architecture, workload requirements, and platform constraints.
+
+\subsection{Summary}
+
+The advice layer extends the classification framework from descriptive analysis to actionable operational support. By linking operational states and interpretations to structured recommendations, the framework becomes more useful in practice for MQ administrators.
+
+This layer forms the final step in translating raw SMF statistics into meaningful operational guidance.
+
+\section{Summary}
+
+This phase introduced a structured classification framework for buffer pool health based on SMF metrics. The framework consists of:
+
+\begin{itemize}
+    \item A defined feature set
+    \item A set of operational states
+    \item A rule based classification model
+    \item An interpretation layer
+    \item An advice layer
+\end{itemize}
+
+By transforming raw performance data into interpretable states, the framework enables consistent analysis and supports informed operational decisions. 
+
