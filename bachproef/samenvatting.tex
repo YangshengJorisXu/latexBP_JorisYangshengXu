@@ -31,13 +31,44 @@
 % Nederlandse samenvatting invoegen. Haal daarvoor onderstaande code uit
 % commentaar.
 % Wie zijn bachelorproef in het Nederlands schrijft, kan dit negeren, de inhoud
-% wordt niet in het document ingevoegd.
+% wordt niet in het document ingevoegd. 
 
 \IfLanguageName{english}{%
 \selectlanguage{dutch}
 \chapter*{Samenvatting}
 \selectlanguage{english}
 }{}
+
+wat, waarom, hoe onderzoek gedaan, resultaten, conclusie en relevantie voor het werk?
+
+Deze bachelor thesis categoriseert en interpreteerd buffer pool System Management Facility (SMF) records van het product IBM Message Queue op een reproduceerbare, betrouwbare 
+en deterministische manier. Om een globaal beeld te geven van het gezondheid van buffer pools.
+
+Buffer pools zijn in geheugen caches die helpen met het normaliseren en balanceren van kostbare IO operaties door veel gebruikte data bij te houden. Het configureren
+van buffer pools is belangrijk om een veilige, beschikbare, bestendige IBM MQ infrastructuur te creëren. Buffer pools creeren SMF records die verschillende data 
+bevat over het gebruik en statistieken van dat buffer pool. Het is dus een rijke bron van informatie. 
+
+
+SMF records zijn echte wel complexe data records in zowel hoeveelheid, types, subtypes. Daarnaast heeft de huidige it landschap, 
+vakkennis, andere factoren in elk bedrijf invloed interpretatie van SMF. De resulterende interpretaties kunnen verschillen 
+door ongelijke kennis, afspraken, achtergrond. 
+
+De hoofdonderzoeksvraag dat word beantwoord is of het mogelijk is om SMF records te categoriseren en of het leid tot kennis en interpretatie waarmee
+gehanteerd kan worden vergeleken met manuele interpretatie en validatie. 
+
+Het onderzoek bestaat uit het creëren van een categorisatie framework dat gevisualizeerd word door een PoC. Het categorisatie framework is 
+ontworpen op een regel gebaseerde ontwerp om zich te houden aan deterministische, betrouwbare en verklarende redenen. 
+
+Daarnaast is er een PoC gecreeërd om het classificatie framework op een overzichtelijke manier te visualizeren. 
+
+Het onderzoek resulteert in een verklaarbare, deterministische, betrouwbare manier om SMF records te categorizeren en interpreteren. Het is echter niet 
+perfect, doordat buffer pools een kleine deel zijn van een groter netwerk van IBM MQ subsystemen. Het PoC kan verfijnd en uitgebreid worden en 
+verbonden worden met SMF records van andere IBM MQ subsystemen zoals: Channels, Queue Managers en Coupling facility om relaties te vinden.    
+
+Deze bachelor thesis concludeert dat het mogelijk is om bepaalde inzichten op een betrouwbare, deterministische en verklaarbare te verkrijgen. De inzichten zijn een klein deel van het 
+gehele situatie en is niet volledig representatief. Het is echter een goeie startpunt om richting te geven in mogelijke onderzoek naar de bron van slechte performantie. 
+
+
 
 %%---------- Samenvatting -----------------------------------------------------
 % De samenvatting in de hoofdtaal van het document
